@@ -1,0 +1,32 @@
+name: Build-String-Sorting
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+      - 'feature/**'
+      - 'release/**'
+      - 'hotfix/**'
+    tags-ignore:
+      - "test-*/**"
+      - "profile-*/**"
+    paths:
+      - "strsort/**"
+      - "!strsort/docs/**"
+      - "!strsort/**.md"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Build
+        id: build
+        uses: ./.github/actions/build
+        if: success()
+        with:
+          target: strsort
+          cmake_build_type: Release

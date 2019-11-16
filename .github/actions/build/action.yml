@@ -1,0 +1,22 @@
+name: "Build"
+author: "Hsuan-Ting Lu"
+description: "Build the repo"
+inputs:
+  target:
+    description: "which target to build"
+    required: true
+  cmake_build_type:
+    description: "CMake Build Type"
+    required: true
+# outputs:
+runs:
+  using: "docker"
+  # env:
+  image: "../../../Dockerfile"
+  entrypoint: "/scripts/build.sh"
+  args:
+    - ${{ inputs.target }}
+    - ${{ inputs.cmake_build_type }}
+branding:
+  icon: "tool"
+  color: "blue"
