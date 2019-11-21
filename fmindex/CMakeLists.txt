@@ -50,9 +50,3 @@ target_compile_options(fmindex
         $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -pedantic>
         $<$<COMPILE_LANGUAGE:CUDA>:>)
 )
-
-
-target_sources(fmindex
-    PRIVATE
-        main.cpp
-)

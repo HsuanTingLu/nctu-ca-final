@@ -14,6 +14,7 @@ set_source_files_properties(strsort
     PROPERTIES LANGUAGE CXX
 )
 
+
 set_source_files_properties(strsort
     xxx.cu
     PROPERTIES LANGUAGE CUDA
