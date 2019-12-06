@@ -6,19 +6,30 @@ target_sources(fmindex
     PUBLIC
     PRIVATE
         main.cu
+
+        types.hpp
+
+        types.cpp
 )
 
 
-#set_source_files_properties(fmindex
-#    main.cpp 
-#    PROPERTIES LANGUAGE CXX
-#)
+set_source_files_properties(fmindex
+    types.cpp 
+    PROPERTIES LANGUAGE CXX
+)
 
 
 set_source_files_properties(fmindex
     main.cu
+    types.hpp
     PROPERTIES LANGUAGE CUDA
 )
+
+
+#set_source_files_properties(fmindex
+#    xxx.c
+#    PROPERTIES LANGUAGE C
+#)
 
 
 target_compile_features(fmindex
