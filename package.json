@@ -1,0 +1,25 @@
+{
+  "name": "nctu-ca-final",
+  "version": "1.0.0",
+  "description": "nctu CA final project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HsuanTingLu/howhow.git"
+  },
+  "author": "Hsuan-Ting Lu",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/HsuanTingLu/howhow/issues"
+  },
+  "homepage": "https://github.com/HsuanTingLu/howhow#readme",
+  "dependencies": {
+    "@actions/core": "^1.2.0",
+    "@actions/exec": "^1.0.1",
+    "@actions/github": "^1.1.0",
+    "@actions/io": "^1.0.1"
+  }
+}

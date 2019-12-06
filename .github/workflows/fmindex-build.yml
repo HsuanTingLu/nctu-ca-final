@@ -19,10 +19,11 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-18.04
+    runs-on: self-hosted
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+
       - name: Build
         id: build
         uses: ./.github/actions/build

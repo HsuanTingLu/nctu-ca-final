@@ -4,7 +4,6 @@ if(NOT ${UNIX})
     message(FATAL_ERROR " not intended for non-UNIX systems")
 endif()
 
-project(howhow LANGUAGES CXX CUDA)
+project(howhow LANGUAGES CXX CUDA C)
 
-add_subdirectory(strsort)
-add_subdirectory(FMindex)
+add_subdirectory(fmindex)

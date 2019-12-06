@@ -8,3 +8,6 @@ build/
 *.ptx
 *.cubin
 *.fatbin
+
+# NodeJS
+node_modules/
