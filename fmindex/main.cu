@@ -7,33 +7,34 @@
  */
 
 //#include <bitset>
-#include <cstdint>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <ratio>
+#include <vector>
+#include <array>
 
-constexpr const int INPUTSIZE = 1 * std::mega::num;  // Number of reads;
-constexpr const int GPU_MEM = 11 * 1024 * 1048576;   // Bytes
+#include "types.hpp"
+
+constexpr const int INPUTSIZE = 10 * std::mega::num;  // Number of reads;
 constexpr const int READLENGTH = 64;
 
 // TODO: pin memory
-__host__
-inline void read_input(std::ifstream* ifs, char (*data)[READLENGTH+1]) {
+void read_input(std::ifstream* ifs, entry* array) {
+    char tmp[64];
     for (int str_idx = 0; str_idx != INPUTSIZE; ++str_idx) {
-        ifs->read(data[str_idx], READLENGTH);
-        data[str_idx][READLENGTH] = '$';
+        ifs->read(tmp, 64);
+        array[str_idx] = entry(tmp);
         ifs->ignore();
     }
 }
 
-__global__
-char data[INPUTSIZE][READLENGTH+1];
+entry data[INPUTSIZE];
 int main(int argc, char** argv) {
     // Read to memory
     std::ifstream ifs(argv[1], std::ifstream::in);
     if (ifs) {
-        read_input(&ifs, data);
+        read_input(&ifs, ::data);
         ifs.close();
     }
 
@@ -52,7 +53,7 @@ int main(int argc, char** argv) {
     // pick one partition, start sorting :: MSD radix sort
 
     // Print data
-    for (char* str : data) {
+    for (char* str : ::data) {
         // custom string print length :: READLENGTH + 1
         printf("%.65s\n", str);
     }

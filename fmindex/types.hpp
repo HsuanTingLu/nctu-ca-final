@@ -20,7 +20,9 @@ class entry {
      *   {64-character string} + {2-character $$ ending sequence}
      */
    public:
-    __device__ __host__ explicit entry(const char* const string);
+   __device__ __host__ entry();
+    __device__ __host__ explicit entry(const char* string);
+    __device__ __host__ entry& operator=(const entry& other);
     __host__ bool operator>(const entry& other) const;
     __host__ bool operator<(const entry& other) const;
 

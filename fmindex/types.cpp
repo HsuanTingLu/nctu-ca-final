@@ -1,4 +1,5 @@
 #include "types.hpp"
+#include <cstring>
 
 // entry
 
@@ -30,12 +31,24 @@ inline uint8_t char_hash(char c) {
 
 }  // namespace utils
 
-entry::entry(const char* const string) {
+entry::entry() {
+    // Default constructor
+}
+
+entry::entry(const char* string) {
     for (int i = 0; i != 32; ++i) {
         this->array[i] = (utils::char_hash(string[i << 1]) << 4) |
                          (0x0f & utils::char_hash(string[(i << 1) + 1]));
     }
     this->array[32] = (4 << 4) | (0x0f & 4);  // fills in '$$' at the end
+}
+
+entry& entry::operator=(const entry& other) {
+    if(&other == this) {  // Check for self-assignment
+        return *this;
+    }
+    // Reuse storage
+    memmove(this->array, other.array, sizeof(uint8_t) * 33);
 }
 
 bool entry::operator>(const entry& other) const {
