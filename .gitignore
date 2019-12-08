@@ -1,5 +1,11 @@
+# editor settings
+.vscode/
+
 # CMake
 build/
+
+# SourceTrail
+srctrail/
 
 # CUDA
 *.i

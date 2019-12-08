@@ -12,6 +12,7 @@
 
 namespace utils {
 inline uint8_t char_hash(char c);
+inline uint8_t charpair_hash(char a, char b);
 }
 
 class entry {
@@ -20,11 +21,12 @@ class entry {
      *   {64-character string} + {2-character $$ ending sequence}
      */
    public:
-   __device__ __host__ entry();
-    __device__ __host__ explicit entry(const char* string);
-    __device__ __host__ entry& operator=(const entry& other);
-    __host__ bool operator>(const entry& other) const;
-    __host__ bool operator<(const entry& other) const;
+    entry();
+    explicit entry(const char* string);
+    entry& operator=(const entry& other);
+    bool operator>(const entry& other) const;
+    bool operator<(const entry& other) const;
+    // TODO: stringify function
 
    public:
     uint8_t array[33];
@@ -35,8 +37,11 @@ struct entry_repr {
      * in a condense form
      */
    public:
+    entry get_entry();
+    uint8_t* get_sub_entry(unsigned int str_idx, uint8_t str_shift, uint8_t char_shift);
+   public:
     entry* str_idx;
-    uint8_t str_shift : 7;  // 6-bit needed
+    uint8_t str_shift : 7;   // 6-bit needed
     uint8_t char_shift : 1;  // 1-bit needed
 };
 

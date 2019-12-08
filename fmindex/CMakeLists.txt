@@ -5,25 +5,28 @@ add_executable(fmindex)
 target_sources(fmindex
     PUBLIC
     PRIVATE
-        main.cu
-
         types.hpp
 
+        main.cpp
         types.cpp
+        radix_sort.cpp
 )
 
 
 set_source_files_properties(fmindex
-    types.cpp 
+    main.cpp
+    types.cpp
+    radix_sort.cpp
+
+    types.hpp
     PROPERTIES LANGUAGE CXX
 )
 
 
-set_source_files_properties(fmindex
-    main.cu
-    types.hpp
-    PROPERTIES LANGUAGE CUDA
-)
+#set_source_files_properties(fmindex
+#    main.cu
+#    PROPERTIES LANGUAGE CUDA
+#)
 
 
 #set_source_files_properties(fmindex
@@ -59,5 +62,5 @@ set_target_properties(fmindex
 target_compile_options(fmindex
     PUBLIC
         $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -pedantic>
-        $<$<COMPILE_LANGUAGE:CUDA>:>
+        #$<$<COMPILE_LANGUAGE:CUDA>:>
 )
