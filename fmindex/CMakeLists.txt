@@ -1,11 +1,10 @@
-
 add_executable(fmindex)
 
 
 target_sources(fmindex
-    PUBLIC
     PRIVATE
         types.hpp
+        radix_sort.hpp
 
         main.cpp
         types.cpp
@@ -13,25 +12,9 @@ target_sources(fmindex
 )
 
 
-set_source_files_properties(fmindex
-    main.cpp
-    types.cpp
-    radix_sort.cpp
-
-    types.hpp
-    PROPERTIES LANGUAGE CXX
-)
-
-
 #set_source_files_properties(fmindex
 #    main.cu
 #    PROPERTIES LANGUAGE CUDA
-#)
-
-
-#set_source_files_properties(fmindex
-#    xxx.c
-#    PROPERTIES LANGUAGE C
 #)
 
 

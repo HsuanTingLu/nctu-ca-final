@@ -12,7 +12,6 @@
 
 namespace utils {
 inline uint8_t char_hash(char c);
-inline uint8_t charpair_hash(char a, char b);
 }
 
 class entry {
@@ -32,16 +31,19 @@ class entry {
     uint8_t array[33];
 };
 
-struct entry_repr {
+class entry_repr {
     /* represents a string entry,
      * in a condense form
      */
    public:
+    entry_repr& operator=(const entry_repr& other);  // copy assignment
     entry get_entry();
-    uint8_t* get_sub_entry(unsigned int str_idx, uint8_t str_shift, uint8_t char_shift);
+    uint8_t* get_sub_entry(unsigned int str_idx, uint8_t str_shift,
+                           uint8_t char_shift);
+
    public:
     entry* str_idx;
-    uint8_t str_shift : 7;   // 6-bit needed
+    uint8_t str_shift : 7;   // 7-bit needed
     uint8_t char_shift : 1;  // 1-bit needed
 };
 
