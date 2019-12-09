@@ -1,35 +1,60 @@
 // clang-format off
-#include "types.hpp"
 #include <cstring>
 #include <stdexcept>
+#include <cstdio>  // DEBUG:
+
+#include <iostream>  // DEBUG:
+
+#include "types.hpp"
 // clang-format on
 
 // entry
 
 namespace utils {
 
-inline uint8_t char_hash(char c) {
+inline int8_t char_hash(char c) {
     // maps ACGT$
     switch (c) {
+        case '$':
+            return 0;
+            break;
         case 'A':
-            return 0U;
+            return 1;
             break;
         case 'C':
-            return 1U;
+            return 2;
             break;
         case 'G':
-            return 2U;
+            return 3;
             break;
         case 'T':
-            return 3U;
-            break;
-        case '$':
-            return 4U;
+            return 4;
             break;
         default:
-            throw std::invalid_argument("argument out of range");
-            return UINT8_MAX;
+            throw std::invalid_argument("char_hash: argument out of range");
+            return INT8_MAX;
+    }
+}
+
+inline char reverse_char(int8_t c) {
+    switch (c) {
+        case 0:
+            return '$';
             break;
+        case 1:
+            return 'A';
+            break;
+        case 2:
+            return 'C';
+            break;
+        case 3:
+            return 'G';
+            break;
+        case 4:
+            return 'T';
+            break;
+        default:
+            throw std::invalid_argument("reverse_char: argument out of range");
     }
 }
 
@@ -40,13 +65,10 @@ entry::entry() {
 }
 
 entry::entry(const char* string) {
-    for (unsigned int i = 0; i != 32; ++i) {
-        this->array[i] = utils::char_hash(string[i << 1]) * 5U +
-                         utils::char_hash(string[(i << 1) + 1U]);
+    printf("%.65s\n", string);  // DEBUG:
+    for (int char_idx = 0; char_idx != 65; ++char_idx) {
+        this->data[char_idx] = utils::char_hash(string[char_idx]);
     }
-
-    // fills in '$$' at the end
-    this->array[32] = utils::char_hash('$') * 5U + utils::char_hash('$');
 }
 
 entry& entry::operator=(const entry& other) {
@@ -54,25 +76,16 @@ entry& entry::operator=(const entry& other) {
         return *this;
     }
     // Reuse storage
-    memmove(this->array, other.array, sizeof(uint8_t) * 33);
+    memmove(this->data, other.data, sizeof(int8_t) * 65);
     return *this;
 }
 
-bool entry::operator>(const entry& other) const {
-    // TODO: use CUDA SIMD
-    return !(this->operator<(other));
-}
-
-bool entry::operator<(const entry& other) const {
-    // TODO: use CUDA SIMD
-    for (int i = 0; i != 33; ++i) {
-        if (this->array[i] < other.array[i]) {
-            return true;
-        } else if (this->array[i] > other.array[i]) {
-            return false;
-        }
+std::ostream& operator<<(std::ostream& os, entry& self) {
+    // pruned output (with only 1 $)
+    for (int i = 0; i != 65; ++i) {
+        os << utils::reverse_char(self.data[i]);
     }
-    return false;
+    return os;
 }
 
 // entry_repr
@@ -84,6 +97,22 @@ entry_repr& entry_repr::operator=(const entry_repr& other) {
     }
     this->str_idx = other.str_idx;
     this->str_shift = other.str_shift;
-    this->char_shift = other.char_shift;
     return *this;
+}
+
+std::ostream& operator<<(std::ostream& os, entry_repr& self) {
+    // Cycle shift: amount=self.str_shift
+    /*
+    char tmp[65];
+    memcpy(tmp, self.str_idx + self.str_shift, 65 - self.str_shift);  // left
+    section memcpy(tmp + 65 - self.str_shift, self.str_idx, self.str_shift);  //
+    right section
+    */
+    for (auto i = self.str_shift; i != 65; ++i) {
+        os << utils::reverse_char(self.str_idx->data[i]);
+    }
+    for (auto i = 0; i != self.str_shift; ++i) {
+        os << utils::reverse_char(self.str_idx->data[i]);
+    }
+    return os;
 }

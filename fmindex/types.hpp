@@ -8,43 +8,47 @@
 
 // clang-format off
 #include <cstdint>
+
+#include <ostream>
 // clang-format on
 
 namespace utils {
-inline uint8_t char_hash(char c);
-}
+
+inline int8_t char_hash(char c);
+inline char reverse_char(int8_t c);
+
+}  // namespace utils
 
 class entry {
     /* a string entry
      * structure: (66 characters in 33-char -> 33 Bytes)
      *   {64-character string} + {2-character $$ ending sequence}
      */
+    friend std::ostream& operator<<(std::ostream& os, entry& self);
+
    public:
     entry();
     explicit entry(const char* string);
     entry& operator=(const entry& other);
-    bool operator>(const entry& other) const;
-    bool operator<(const entry& other) const;
-    // TODO: stringify function
 
    public:
-    uint8_t array[33];
+    int8_t data[65];
 };
 
 class entry_repr {
     /* represents a string entry,
      * in a condense form
      */
+    friend std::ostream& operator<<(std::ostream& os, entry_repr& self);
+
    public:
     entry_repr& operator=(const entry_repr& other);  // copy assignment
     entry get_entry();
-    uint8_t* get_sub_entry(unsigned int str_idx, uint8_t str_shift,
-                           uint8_t char_shift);
+    uint8_t* get_sub_entry(int str_idx, int8_t str_shift);
 
    public:
     entry* str_idx;
-    uint8_t str_shift : 7;   // 7-bit needed
-    uint8_t char_shift : 1;  // 1-bit needed
+    uint8_t str_shift;
 };
 
 #endif
