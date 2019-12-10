@@ -80,9 +80,9 @@ int main(int argc, char** argv) {
 
     // Scan for distribution
     unsigned int partition_freq[sort::PARTITION_SIZE] = {};
-    unsigned int freqency[sort::RADIX_LEVELS][sort::RADIX_SIZE] = {};
+    unsigned int frequency[sort::RADIX_LEVELS][sort::RADIX_SIZE] = {};
     sort::SingleThread::count_frequency(repr_array, EXPANDEDSIZE,
-                                        partition_freq, freqency);
+                                        partition_freq, frequency);
 
     std::cerr << "partition frequency:\n";
     std::cerr << "(sum = "

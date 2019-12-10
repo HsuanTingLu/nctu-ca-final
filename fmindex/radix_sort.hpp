@@ -29,7 +29,7 @@ void expand_rotation(entry* array, const int array_size, entry_repr* repr_array,
 
 void count_frequency(entry_repr* repr_array, const int repr_array_size,
                      unsigned int partition_freq[PARTITION_SIZE],
-                     unsigned int freqency[RADIX_LEVELS][RADIX_SIZE]);
+                     unsigned int frequency[RADIX_LEVELS][RADIX_SIZE]);
 
 void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
                   unsigned int partition_freq[sort::PARTITION_SIZE]);

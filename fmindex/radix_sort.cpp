@@ -30,7 +30,7 @@ void expand_rotation(entry* array, const int array_size, entry_repr* repr_array,
 
 void count_frequency(entry_repr* repr_array, const int repr_array_size,
                      unsigned int partition_freq[PARTITION_SIZE],
-                     unsigned int freqency[RADIX_LEVELS][RADIX_SIZE]) {
+                     unsigned int frequency[RADIX_LEVELS][RADIX_SIZE]) {
     /* Counts the number of values that will fall into each bucket at each pass
      * so that it can be sized appropriately, aka taking the histogram of the
      * data
@@ -66,7 +66,7 @@ void count_frequency(entry_repr* repr_array, const int repr_array_size,
         // radix pass
         for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
             unsigned int char_idx = 5 + pass * 4;
-            freqency[pass][static_cast<unsigned int>(tmp[char_idx + 0]) * 125 +
+            frequency[pass][static_cast<unsigned int>(tmp[char_idx + 0]) * 125 +
                            static_cast<unsigned int>(tmp[char_idx + 1]) * 25 +
                            static_cast<unsigned int>(tmp[char_idx + 2]) * 5 +
                            static_cast<unsigned int>(tmp[char_idx + 3])]++;
