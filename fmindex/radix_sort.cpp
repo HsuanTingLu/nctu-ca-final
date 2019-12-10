@@ -125,15 +125,67 @@ void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
     repr_array = alt_array;
 }
 
-void radix_sort(entry_repr* repr_array, const unsigned int size) {
-    std::unique_ptr<entry_repr[]> alt_array(new entry_repr[size]);
+void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
+                unsigned int frequency[sort::RADIX_LEVELS][sort::RADIX_SIZE]) {
+    entry_repr* alt_array = static_cast<entry_repr*>(
+        std::malloc(repr_array_size * sizeof(entry_repr)));
     entry_repr *from = repr_array,
-               *to = alt_array.get();  // alternation pointers
+               *to = alt_array;  // alternation pointers
 
-    // Scan for distribution
-    unsigned int freqency[RADIX_LEVELS][RADIX_SIZE] = {};
+    for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
+        // init the bucket boundaries
+        entry_repr* bucket_ptrs[RADIX_SIZE];
+        entry_repr* next = to;
+        for (unsigned int i = 0; i != RADIX_SIZE; ++i) {
+            bucket_ptrs[i] = next;
+            next += frequency[pass][i];
+        }
 
-    for (int pass = 0; pass != RADIX_LEVELS; ++pass) {
+        // DEBUG: sanity check
+        if (next != (to + repr_array_size)) {
+            throw std::logic_error(
+                "radix_sort:: final ptr should be exactly at the end of the "
+                "alt_array");
+        }
+
+        uint8_t tmp[4];
+        for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
+             ++repr_idx) {
+            entry_repr repr = from[repr_idx];
+
+            // extract substring and categorize into bucket
+            if (repr.str_shift + 4 > 65) {
+                // cyclic combination
+                std::memcpy(tmp, repr.str_idx->data + repr.str_shift,
+                            (65 - repr.str_shift) * sizeof(uint8_t));
+                std::memcpy(tmp + 65 - repr.str_shift, repr.str_idx->data,
+                            (repr.str_shift + 4 - 65) * sizeof(uint8_t));
+            } else {
+                // normal
+                std::memcpy(tmp, repr.str_idx->data + repr.str_shift,
+                            4 * sizeof(uint8_t));
+            }
+
+            unsigned int bucket_idx = static_cast<unsigned int>(tmp[0]) * 125 +
+                                      static_cast<unsigned int>(tmp[1]) * 25 +
+                                      static_cast<unsigned int>(tmp[2]) * 5 +
+                                      static_cast<unsigned int>(tmp[3]);
+            *bucket_ptrs[bucket_idx]++ = repr;
+        }
+
+        // swap pointers
+        entry_repr* ptr_swap_tmp = from;
+        from = to;
+        to = ptr_swap_tmp;
+    }
+
+    // return the correct array if ${RADIX_LEVELS} is odd
+    if (RADIX_LEVELS & 1) {
+        // swap the entire repr array
+        std::free(repr_array);
+        repr_array = alt_array;
+    } else {
+        std::free(alt_array);
     }
 }
 
