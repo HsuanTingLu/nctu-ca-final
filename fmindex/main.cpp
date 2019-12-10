@@ -101,17 +101,17 @@ int main(int argc, char** argv) {
     std::cerr << "check partition\n";
     sort::SingleThread::partitioning(repr_array, EXPANDEDSIZE, partition_freq);
     for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        //std::cout << repr_array[i] << std::endl;
+        // std::cout << repr_array[i] << std::endl;
     }
 
     // Sort
     std::cerr << "check sorting\n";
     sort::SingleThread::radix_sort(repr_array, EXPANDEDSIZE, frequency);
     for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        std::cout << repr_array[i] << std::endl;
+        // std::cout << repr_array[i] << std::endl;
     }
 
     // cleanup
-    free(str_array);
-    free(repr_array);
+    std::free(str_array);
+    std::free(repr_array);
 }

@@ -1,5 +1,6 @@
 // clang-format off
 #include <cstdlib>
+#include <cstring>
 
 #include <memory>
 
@@ -67,9 +68,9 @@ void count_frequency(entry_repr* repr_array, const int repr_array_size,
         for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
             unsigned int char_idx = 5 + pass * 4;
             frequency[pass][static_cast<unsigned int>(tmp[char_idx + 0]) * 125 +
-                           static_cast<unsigned int>(tmp[char_idx + 1]) * 25 +
-                           static_cast<unsigned int>(tmp[char_idx + 2]) * 5 +
-                           static_cast<unsigned int>(tmp[char_idx + 3])]++;
+                            static_cast<unsigned int>(tmp[char_idx + 1]) * 25 +
+                            static_cast<unsigned int>(tmp[char_idx + 2]) * 5 +
+                            static_cast<unsigned int>(tmp[char_idx + 3])]++;
         }
     }
 }

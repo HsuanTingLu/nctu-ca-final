@@ -71,7 +71,7 @@ entry& entry::operator=(const entry& other) {
         return *this;
     }
     // Reuse storage
-    memmove(this->data, other.data, sizeof(uint8_t) * 65);
+    std::memmove(this->data, other.data, sizeof(uint8_t) * 65);
     return *this;
 }
 
@@ -108,11 +108,11 @@ std::ostream& operator<<(std::ostream& os, entry_repr& self) {
     // Cycle shift: amount=self.str_shift
     uint8_t tmp[65];
     // left section
-    memcpy(tmp, self.str_idx->data + self.str_shift,
-           (65 - self.str_shift) * sizeof(uint8_t));
+    std::memcpy(tmp, self.str_idx->data + self.str_shift,
+                (65 - self.str_shift) * sizeof(uint8_t));
     // right section
-    memcpy(tmp + 65 - self.str_shift, self.str_idx->data,
-           self.str_shift * sizeof(uint8_t));
+    std::memcpy(tmp + 65 - self.str_shift, self.str_idx->data,
+                self.str_shift * sizeof(uint8_t));
 
     for (uint8_t i = 0; i != 65; ++i) {
         os << utils::reverse_char(tmp[i]);
