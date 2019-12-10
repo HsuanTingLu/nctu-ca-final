@@ -14,8 +14,8 @@
 
 namespace utils {
 
-inline int8_t char_hash(char c);
-inline char reverse_char(int8_t c);
+uint8_t char_hash(char c);
+char reverse_char(uint8_t c);
 
 }  // namespace utils
 
@@ -27,12 +27,12 @@ class entry {
     friend std::ostream& operator<<(std::ostream& os, entry& self);
 
    public:
-    entry();
+    explicit entry();
     explicit entry(const char* string);
     entry& operator=(const entry& other);
 
    public:
-    int8_t data[65];
+    uint8_t data[65];
 };
 
 class entry_repr {
@@ -42,6 +42,9 @@ class entry_repr {
     friend std::ostream& operator<<(std::ostream& os, entry_repr& self);
 
    public:
+    explicit entry_repr();
+    entry_repr(entry* str_idx, uint8_t str_shift);
+    entry_repr(const entry_repr& other);             // copy constructor
     entry_repr& operator=(const entry_repr& other);  // copy assignment
     entry get_entry();
     uint8_t* get_sub_entry(int str_idx, int8_t str_shift);
