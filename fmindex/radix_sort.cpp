@@ -40,10 +40,10 @@ void count_frequency(entry_repr* repr_array, const int repr_array_size,
 
         // extract full string
         uint8_t tmp[65];
-        memcpy(tmp, repr.str_idx->data + repr.str_shift,
-               (65 - repr.str_shift) * sizeof(uint8_t));
-        memcpy(tmp + 65 - repr.str_shift, repr.str_idx->data,
-               (repr.str_shift) * sizeof(uint8_t));
+        std::memcpy(tmp, repr.str_idx->data + repr.str_shift,
+                    (65 - repr.str_shift) * sizeof(uint8_t));
+        std::memcpy(tmp + 65 - repr.str_shift, repr.str_idx->data,
+                    (repr.str_shift) * sizeof(uint8_t));
 
         // partitioning pass
         /* DEBUG:
@@ -79,6 +79,7 @@ void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
     // init the bucket boundaries
     entry_repr* alt_array = static_cast<entry_repr*>(
         std::malloc(repr_array_size * sizeof(entry_repr)));
+
     entry_repr* bucket_ptrs[PARTITION_SIZE];
     entry_repr* next = alt_array;
     for (unsigned int i = 0; i != PARTITION_SIZE; ++i) {
@@ -101,13 +102,14 @@ void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
         // extract substring and categorize into bucket
         if (repr.str_shift + 5 > 65) {
             // cyclic combination
-            memcpy(tmp, repr.str_idx->data + repr.str_shift,
-                   65 - repr.str_shift);
-            memcpy(tmp + 65 - repr.str_shift, repr.str_idx->data,
-                   repr.str_shift + 5 - 65);
+            std::memcpy(tmp, repr.str_idx->data + repr.str_shift,
+                        (65 - repr.str_shift) * sizeof(uint8_t));
+            std::memcpy(tmp + 65 - repr.str_shift, repr.str_idx->data,
+                        (repr.str_shift + 5 - 65) * sizeof(uint8_t));
         } else {
             // normal
-            memcpy(tmp, repr.str_idx->data + repr.str_shift, 5);
+            std::memcpy(tmp, repr.str_idx->data + repr.str_shift,
+                        5 * sizeof(uint8_t));
         }
 
         unsigned int bucket_idx = static_cast<unsigned int>(tmp[0]) * 625 +
