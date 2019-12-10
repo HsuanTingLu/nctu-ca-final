@@ -1,4 +1,5 @@
 import sys
+import tqdm
 from random import randrange
 
 EXPECTARGC = 2
@@ -27,7 +28,6 @@ except FileExistsError as e:
     e
     sys.exit()
 
-
 try:
     assert sys.argv[2].isdigit()
 except AssertionError as e:
@@ -36,9 +36,8 @@ except AssertionError as e:
     sys.exit()
 read_count = int(sys.argv[2])
 
-
 with open(filename, "w") as f:
-    for i in range(read_count):
+    for i in tqdm.tqdm(range(read_count)):
         read = ""
         for j in range(read_length):
             read += alphabet[randrange(4)]
