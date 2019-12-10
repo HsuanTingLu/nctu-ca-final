@@ -1,6 +1,9 @@
 // clang-format off
-#include "radix_sort.hpp"
+#include <cstdlib>
+
 #include <memory>
+
+#include "radix_sort.hpp"
 // clang-format on
 
 namespace sort {
@@ -69,7 +72,55 @@ void count_frequency(entry_repr* repr_array, const int repr_array_size,
                            static_cast<unsigned int>(tmp[char_idx + 3])]++;
         }
     }
+}
+
+void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
+                  unsigned int partition_freq[sort::PARTITION_SIZE]) {
+    // init the bucket boundaries
+    entry_repr* alt_array = static_cast<entry_repr*>(
+        std::malloc(repr_array_size * sizeof(entry_repr)));
+    entry_repr* bucket_ptrs[PARTITION_SIZE];
+    entry_repr* next = alt_array;
+    for (unsigned int i = 0; i != PARTITION_SIZE; ++i) {
+        bucket_ptrs[i] = next;
+        next += partition_freq[i];
     }
+
+    // DEBUG: sanity check
+    if (next != (alt_array + repr_array_size)) {
+        throw std::logic_error(
+            "partitioning:: final ptr should be exactly at the end of the "
+            "alt_array");
+    }
+
+    // Partition (move)
+    uint8_t tmp[5];
+    for (unsigned int repr_idx = 0; repr_idx != repr_array_size; ++repr_idx) {
+        entry_repr repr = repr_array[repr_idx];
+
+        // extract substring and categorize into bucket
+        if (repr.str_shift + 5 > 65) {
+            // cyclic combination
+            memcpy(tmp, repr.str_idx->data + repr.str_shift,
+                   65 - repr.str_shift);
+            memcpy(tmp + 65 - repr.str_shift, repr.str_idx->data,
+                   repr.str_shift + 5 - 65);
+        } else {
+            // normal
+            memcpy(tmp, repr.str_idx->data + repr.str_shift, 5);
+        }
+
+        unsigned int bucket_idx = static_cast<unsigned int>(tmp[0]) * 625 +
+                                  static_cast<unsigned int>(tmp[1]) * 125 +
+                                  static_cast<unsigned int>(tmp[2]) * 25 +
+                                  static_cast<unsigned int>(tmp[3]) * 5 +
+                                  static_cast<unsigned int>(tmp[4]);
+        *bucket_ptrs[bucket_idx]++ = repr;
+    }
+
+    // swap the entire repr array
+    std::free(repr_array);
+    repr_array = alt_array;
 }
 
 void radix_sort(entry_repr* repr_array, const unsigned int size) {

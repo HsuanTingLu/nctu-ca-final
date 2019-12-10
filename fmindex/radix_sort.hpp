@@ -31,7 +31,8 @@ void count_frequency(entry_repr* repr_array, const int repr_array_size,
                      unsigned int partition_freq[PARTITION_SIZE],
                      unsigned int freqency[RADIX_LEVELS][RADIX_SIZE]);
 
-void partitioning(entry_repr* repr_array, const unsigned int repr_array_size);
+void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
+                  unsigned int partition_freq[sort::PARTITION_SIZE]);
 
 void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size);
 

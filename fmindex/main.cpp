@@ -7,12 +7,12 @@
  */
 
 // clang-format off
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 
 #include <fstream>
 #include <iostream>
-#include <ratio>
 #include <memory>
 #include <string>
 #include <stdexcept>
@@ -35,10 +35,10 @@ void read_input(std::ifstream* ifs, entry* array, const int INPUTSIZE) {
 
 int main(int argc, char** argv) {
     if (argc != 1 + 2) {  // DEBUG:
-        throw std::invalid_argument("need 2 arguments");
+        throw std::invalid_argument("2 arguments needed");
     }
-
-    const int INPUTSIZE = std::stoi(argv[2]);  // HACK: use "wc -l" for this
+    // HACK: use "wc -l" for file line counting
+    const int INPUTSIZE = std::stoi(argv[2]);
     const int EXPANDEDSIZE = 65 * INPUTSIZE;
     std::cerr << "expected output size :: str_array: " << INPUTSIZE
               << ", rotate_expand: " << EXPANDEDSIZE << "\n";
@@ -51,9 +51,9 @@ int main(int argc, char** argv) {
         // TODO: Count number of lines of the input file, HACK: use "wc -l"
 
         // Allocate array
-        str_array = static_cast<entry*>(malloc(INPUTSIZE * sizeof(entry)));
-        repr_array =
-            static_cast<entry_repr*>(malloc(EXPANDEDSIZE * sizeof(entry_repr)));
+        str_array = static_cast<entry*>(std::malloc(INPUTSIZE * sizeof(entry)));
+        repr_array = static_cast<entry_repr*>(
+            std::malloc(EXPANDEDSIZE * sizeof(entry_repr)));
 
         // Read input
         read_input(&ifs, str_array, INPUTSIZE);
@@ -97,11 +97,18 @@ int main(int argc, char** argv) {
     }
     // std::cerr << "\n";
 
+    // Partition
+    std::cerr << "check partition\n";
+    sort::SingleThread::partitioning(repr_array, EXPANDEDSIZE, partition_freq);
+    for (int i = 0; i != EXPANDEDSIZE; ++i) {
+        std::cout << repr_array[i] << std::endl;
+    }
+
     // Print data
     /*
     for (auto str : str_array) {
         // custom string print length :: READLENGTH + 1
-        printf("%.65s\n", str);
+        std::printf("%.65s\n", str);
     }
     */
     free(str_array);

@@ -99,7 +99,6 @@ entry_repr& entry_repr::operator=(const entry_repr& other) {
     if (&other == this) {
         return *this;
     }
-    throw std::logic_error("dangerous implementation");
     this->str_idx = other.str_idx;
     this->str_shift = other.str_shift;
     return *this;
