@@ -4,7 +4,7 @@ if(NOT ${UNIX})
     message(FATAL_ERROR " not intended for non-UNIX systems")
 endif()
 
-project(howhow LANGUAGES CXX C)
+project(howhow LANGUAGES CXX)
 #enable_language(CUDA)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)

@@ -20,17 +20,12 @@ target_sources(fmindex
 
 target_compile_features(fmindex
     PUBLIC
-        c_std_11
         cxx_std_14
 )
 
 
 set_target_properties(fmindex
     PROPERTIES
-        C_STANDARD 11
-        C_STANDARD_REQUIRED ON
-        C_EXTENSIONS OFF
-
         CXX_STANDARD 14
         CXX_STANDARD_REQUIRED ON
         CXX_EXTENSIONS OFF
