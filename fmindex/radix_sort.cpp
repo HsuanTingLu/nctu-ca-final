@@ -25,18 +25,50 @@ void expand_rotation(entry* array, const int array_size, entry_repr* repr_array,
     }
 }
 
-void count_frequency(entry_repr* repr_array, const int size,
-                     int freqency[RADIX_LEVELS][RADIX_SIZE]) {
+void count_frequency(entry_repr* repr_array, const int repr_array_size,
+                     unsigned int partition_freq[PARTITION_SIZE],
+                     unsigned int freqency[RADIX_LEVELS][RADIX_SIZE]) {
     /* Counts the number of values that will fall into each bucket at each pass
      * so that it can be sized appropriately, aka taking the histogram of the
      * data
      */
-    for (int i = 0; i != size; ++i) {
-        // disregard top 6-char since they are trivial after partitioning
-        auto value = repr_array[i];
-        for (int pass = 0; pass != RADIX_LEVELS; ++pass) {
-            freqency[pass][0];
+    for (int i = 0; i != repr_array_size; ++i) {
+        entry_repr repr = repr_array[i];
+
+        // extract full string
+        uint8_t tmp[65];
+        memcpy(tmp, repr.str_idx->data + repr.str_shift,
+               (65 - repr.str_shift) * sizeof(uint8_t));
+        memcpy(tmp + 65 - repr.str_shift, repr.str_idx->data,
+               (repr.str_shift) * sizeof(uint8_t));
+
+        // partitioning pass
+        /* DEBUG:
+        std::cerr << "@@@ " << utils::reverse_char(tmp[0]) << " "
+                  << utils::reverse_char(tmp[1]) << " "
+                  << utils::reverse_char(tmp[2]) << " "
+                  << utils::reverse_char(tmp[3]) << " "
+                  << utils::reverse_char(tmp[4]) << " -> " << repr << " @@@\n";
+        std::cerr << "                 ";
+        for (uint8_t i = 0; i != 65; ++i) {
+            std::cerr << utils::reverse_char(tmp[i]);
         }
+        std::cerr << " <-\n";
+        */
+        partition_freq[static_cast<unsigned int>(tmp[0]) * 625 +
+                       static_cast<unsigned int>(tmp[1]) * 125 +
+                       static_cast<unsigned int>(tmp[2]) * 25 +
+                       static_cast<unsigned int>(tmp[3]) * 5 +
+                       static_cast<unsigned int>(tmp[4])]++;
+        // radix pass
+        for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
+            unsigned int char_idx = 5 + pass * 4;
+            freqency[pass][static_cast<unsigned int>(tmp[char_idx + 0]) * 125 +
+                           static_cast<unsigned int>(tmp[char_idx + 1]) * 25 +
+                           static_cast<unsigned int>(tmp[char_idx + 2]) * 5 +
+                           static_cast<unsigned int>(tmp[char_idx + 3])]++;
+        }
+    }
     }
 }
 

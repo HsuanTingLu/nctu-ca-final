@@ -6,12 +6,17 @@
 // clang-format on
 
 namespace sort {
-// 2 uint8_t, 2 Bytes, 16 bits
-constexpr const unsigned int RADIX_BITS = 8 * 2;
-// 2 uint8_t, 2 Bytes, 4 dna chars, 5^4 = 625
+// 4 char, 4 Bytes, 32 bits
+constexpr const unsigned int RADIX_BITS = 4 * 8;
+// 4 char, 4 Bytes, 4 dna chars, 5^4 = 625
 constexpr const unsigned int RADIX_SIZE = 625;
-// 66-char = preliminary 6-char + 15 levels * 4 char
+// 65-char = preliminary 5-char + 15 levels * 4 char
 constexpr const unsigned int RADIX_LEVELS = 15;
+//
+constexpr const unsigned int PARTITION_CHARS =
+    65 - (RADIX_BITS / 8) * RADIX_LEVELS;
+// PARTITION_SIZE = power(5, PARTITION_CHARS)
+constexpr const unsigned int PARTITION_SIZE = 3125;
 // 4 dna chars
 constexpr const uint32_t RADIX_MASK = 0xffff;
 
@@ -22,10 +27,13 @@ namespace SingleThread {
 void expand_rotation(entry* array, const int array_size, entry_repr* repr_array,
                      const int repr_array_size);
 
-void count_frequency(entry_repr* repr_array, const unsigned int size,
+void count_frequency(entry_repr* repr_array, const int repr_array_size,
+                     unsigned int partition_freq[PARTITION_SIZE],
                      unsigned int freqency[RADIX_LEVELS][RADIX_SIZE]);
 
-void radix_sort(entry_repr* repr_array, const unsigned int size);
+void partitioning(entry_repr* repr_array, const unsigned int repr_array_size);
+
+void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size);
 
 }  // namespace SingleThread
 

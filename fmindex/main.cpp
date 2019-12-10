@@ -16,6 +16,7 @@
 #include <memory>
 #include <string>
 #include <stdexcept>
+#include <numeric>
 
 #include "types.hpp"
 #include "radix_sort.hpp"
@@ -64,38 +65,37 @@ int main(int argc, char** argv) {
     std::cout << std::endl;
 
     for (int i = 0; i != INPUTSIZE; ++i) {
-        auto tmp = str_array[i];
-        std::cout << tmp << std::endl;
+        // std::cout << str_array[i] << std::endl;
     }
+    // std::cout << "\n";
 
     sort::SingleThread::expand_rotation(str_array, INPUTSIZE, repr_array,
                                         EXPANDEDSIZE);
     for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        std::cout << repr_array[i] << std::endl;
+        if (!(i % 65)) {
+            // std::cout << "< " << i / 65 << " >\n";
+        }
+        // std::cout << repr_array[i] << std::endl;
     }
 
-    // Partitioning
-    // std::array<std::vector<entry_repr>, 125> buckets;  // TODO: change
-    // initial partitioning size
-    /* Split to N-parallel threads
-     * gets evenly distributed sections of the input array
-     *
-     * each thread, each with its own bucketS, fetching substrings (feels like
-     * string-rotation-expanding)
-     */
+    // Scan for distribution
+    unsigned int partition_freq[sort::PARTITION_SIZE] = {};
+    unsigned int freqency[sort::RADIX_LEVELS][sort::RADIX_SIZE] = {};
+    sort::SingleThread::count_frequency(repr_array, EXPANDEDSIZE,
+                                        partition_freq, freqency);
 
-    // prefix partitioning, save index into multi-index table
-    //   sliding window gets all prefixes of rotations (the part needed for
-    //   partitioning)
-    /* TODO: get GPU mem size
-     *
-     * Original Data :: char size( =1Byte) * string length( =65) * 10M strings =
-     * 650MB Rotated  Data :: 650MB * rotations( =65) = 42.25GB partition size =
-     *
-     * GOAL: partition size EQUAL gpu mem size
-     */
-
-    // pick one partition, start sorting :: MSD radix sort
+    std::cerr << "partition frequency:\n";
+    std::cerr << "(sum = "
+              << std::accumulate(partition_freq,
+                                 partition_freq + sort::PARTITION_SIZE, 0)
+              << ")\n";
+    for (int i = 0; i != sort::PARTITION_SIZE; ++i) {
+        // std::cerr << partition_freq[i] << " ";
+        if (!(i % 80) && i != 0) {
+            // std::cerr << "\n";
+        }
+    }
+    // std::cerr << "\n";
 
     // Print data
     /*
@@ -104,4 +104,6 @@ int main(int argc, char** argv) {
         printf("%.65s\n", str);
     }
     */
+    free(str_array);
+    free(repr_array);
 }
