@@ -50,6 +50,26 @@ set_target_properties(fmindex
 
 target_compile_options(fmindex
     PUBLIC
-        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -pedantic>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -pedantic -O3>
         $<$<COMPILE_LANGUAGE:CUDA>:>
+)
+
+
+
+
+
+add_executable(stlsort stlsort.cpp)
+
+target_compile_features(stlsort PUBLIC cxx_std_14)
+
+set_target_properties(stlsort
+    PROPERTIES
+        CXX_STANDARD 14
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+)
+
+target_compile_options(stlsort
+    PUBLIC
+        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -pedantic -O3>
 )
