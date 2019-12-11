@@ -5,7 +5,7 @@
  * GNU General Public License v3.0+
  * (see LICENSE or https://www.gnu.org/licenses/)
  */
-//
+
 // clang-format off
 #include <cstdlib>
 #include <cstdio>
