@@ -6,7 +6,6 @@
  * (see LICENSE or https://www.gnu.org/licenses/)
  */
 
-
 #ifndef RADIX_SORT_HPP_
 #define RADIX_SORT_HPP_
 
@@ -48,17 +47,6 @@ void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
 
 }  // namespace SingleThread
 
-namespace MultiThread {
-
-void radix_sort();
-
-}  // namespace MultiThread
-
-namespace GPU {
-
-void radix_sort();
-
-}
-
 }  // namespace sort
+
 #endif
