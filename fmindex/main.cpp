@@ -64,19 +64,19 @@ int main(int argc, char** argv) {
 
     std::cout << std::endl;
 
-    for (int i = 0; i != INPUTSIZE; ++i) {
+    /*for (int i = 0; i != INPUTSIZE; ++i) {
         // std::cout << str_array[i] << std::endl;
-    }
+    }*/
     // std::cout << "\n";
 
     sort::SingleThread::expand_rotation(str_array, INPUTSIZE, repr_array,
                                         EXPANDEDSIZE);
-    for (int i = 0; i != EXPANDEDSIZE; ++i) {
+    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
         if (!(i % 65)) {
             // std::cout << "< " << i / 65 << " >\n";
         }
         // std::cout << repr_array[i] << std::endl;
-    }
+    }*/
 
     // Scan for distribution
     unsigned int partition_freq[sort::PARTITION_SIZE] = {};
@@ -89,27 +89,27 @@ int main(int argc, char** argv) {
               << std::accumulate(partition_freq,
                                  partition_freq + sort::PARTITION_SIZE, 0)
               << ")\n";
-    for (int i = 0; i != sort::PARTITION_SIZE; ++i) {
+    /*for (int i = 0; i != sort::PARTITION_SIZE; ++i) {
         // std::cerr << partition_freq[i] << " ";
         if (!(i % 80) && i != 0) {
             // std::cerr << "\n";
         }
-    }
+    }*/
     // std::cerr << "\n";
 
     // Partition
     std::cerr << "check partition\n";
     sort::SingleThread::partitioning(repr_array, EXPANDEDSIZE, partition_freq);
-    for (int i = 0; i != EXPANDEDSIZE; ++i) {
+    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
         // std::cout << repr_array[i] << std::endl;
-    }
+    }*/
 
     // Sort
     std::cerr << "check sorting\n";
     sort::SingleThread::radix_sort(repr_array, EXPANDEDSIZE, frequency);
-    for (int i = 0; i != EXPANDEDSIZE; ++i) {
+    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
         // std::cout << repr_array[i] << std::endl;
-    }
+    }*/
 
     // cleanup
     std::free(str_array);
