@@ -1,14 +1,25 @@
-add_executable(fmindex)
+add_executable(fmindex main.cpp)
 
 
 target_sources(fmindex
     PRIVATE
         types.hpp
-        radix_sort.hpp
-
-        main.cpp
         types.cpp
-        radix_sort.cpp
+)
+
+target_sources(fmindex
+    PRIVATE
+        # cpu, single thread
+        $<IF:$<BOOL:NOT DEFINED SORT>,radix_sort.hpp,>
+        $<IF:$<BOOL:NOT DEFINED SORT>,radix_sort.cpp,>
+        # cpu, multi thread
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,parallel>,parallel_radix_sort.hpp,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,parallel>,parallel_radix_sort.cpp,>
+        # gpu, cuda
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,gpu_radix_sort.hpp,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,radix_sort.cpp,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,radix_sort.cuh,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,radix_sort.cu,>
 )
 
 
@@ -40,5 +51,5 @@ set_target_properties(fmindex
 target_compile_options(fmindex
     PUBLIC
         $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -pedantic>
-        #$<$<COMPILE_LANGUAGE:CUDA>:>
+        $<$<COMPILE_LANGUAGE:CUDA>:>
 )

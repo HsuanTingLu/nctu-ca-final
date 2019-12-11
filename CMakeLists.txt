@@ -5,7 +5,19 @@ if(NOT ${UNIX})
 endif()
 
 project(howhow LANGUAGES CXX)
-#enable_language(CUDA)
+
+
+if(NOT DEFINED SORT)
+    message(WARNING " using single threaded radix sort")
+elseif(${SORT} STREQUAL parallel)
+    message(WARNING " using multi-thread radix sort")
+elseif(${SORT} STREQUAL gpu)
+    enable_language(CUDA)
+    message(WARNING " using GPU radix sort")
+else()
+    message(FATAL_ERROR " invalid sorting config")
+endif()
+
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 add_subdirectory(fmindex)
