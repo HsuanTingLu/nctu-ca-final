@@ -10,8 +10,8 @@ target_sources(fmindex
 target_sources(fmindex
     PRIVATE
         # cpu, single thread
-        $<IF:$<BOOL:NOT DEFINED SORT>,radix_sort.hpp,>
-        $<IF:$<BOOL:NOT DEFINED SORT>,radix_sort.cpp,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,cpu>,radix_sort.hpp,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,cpu>,radix_sort.cpp,>
         # cpu, multi thread
         $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,parallel>,parallel_radix_sort.hpp,>
         $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,parallel>,parallel_radix_sort.cpp,>

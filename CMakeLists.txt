@@ -8,6 +8,7 @@ project(howhow LANGUAGES CXX)
 
 
 if(NOT DEFINED SORT)
+    set(SORT cpu)
     message(WARNING " using single threaded radix sort")
 elseif(${SORT} STREQUAL parallel)
     message(WARNING " using multi-thread radix sort")

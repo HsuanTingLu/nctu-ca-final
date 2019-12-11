@@ -1,4 +1,4 @@
-name: Build-FM-index
+name: FM-index-sanity-check
 
 on:
   push:
@@ -9,8 +9,8 @@ on:
       - 'release/**'
       - 'hotfix/**'
     tags-ignore:
-      - "test-*/**"
-      - "profile-*/**"
+      - "time-**"
+      - "profile-**"
     paths:
       - "fmindex/**"
       - "!fmindex/docs/**"

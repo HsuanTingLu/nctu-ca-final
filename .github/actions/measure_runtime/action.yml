@@ -1,0 +1,20 @@
+# Measures runtime
+name: "Measure runtime"
+author: "Hsuan-Ting Lu"
+description: "Measure runtime"
+inputs:
+  target:
+    description: "which target to measure"
+    required: true
+  size:
+    description: "number of inputs"
+    required: true
+outputs:
+  runtime:
+    description: "runtime"
+runs:
+  using: "node12"
+  main: "../../../scripts/testspeed.js"
+branding:
+  icon: "watch"
+  color: "yellow"
