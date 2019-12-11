@@ -23,8 +23,9 @@ void expand_rotation(entry* array, const int array_size,
     /* Expands and creates the entire table of representations of
      * strings-to-be-sorted
      */
+    std::future<void> work[array_size];
     for (int str_idx = 0; str_idx != array_size; ++str_idx) {
-        auto work = std::async(
+        work[str_idx] = std::async(
             std::launch::async, [&array, &repr_array, str_idx]() -> void {
                 int repr_counter = str_idx * 65;
                 for (int str_shift = 0; str_shift != 65; ++str_shift) {
@@ -33,7 +34,9 @@ void expand_rotation(entry* array, const int array_size,
                     ++repr_counter;
                 }
             });
-        work.wait();
+    }
+    for (int str_idx = 0; str_idx != array_size; ++str_idx) {
+        work[str_idx].wait();
     }
 }
 
@@ -44,8 +47,9 @@ void count_frequency(entry_repr* repr_array, const int repr_array_size,
      * so that it can be sized appropriately, aka taking the histogram of the
      * data
      */
+    std::future<void> work[repr_array_size];
     for (int i = 0; i != repr_array_size; ++i) {
-        auto work = std::async(
+        work[i] = std::async(
             std::launch::async,
             [&repr_array, &partition_freq, &frequency, i]() -> void {
                 entry_repr repr = repr_array[i];
@@ -86,6 +90,9 @@ void count_frequency(entry_repr* repr_array, const int repr_array_size,
                               static_cast<unsigned int>(tmp[char_idx + 3])]++;
                 }
             });
+    }
+    for (int i = 0; i != repr_array_size; ++i) {
+        work[i].wait();
     }
 }
 
