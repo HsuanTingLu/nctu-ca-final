@@ -19,7 +19,7 @@
 #include <numeric>
 
 #include "types.hpp"
-#include "radix_sort.hpp"
+#include "parallel_radix_sort.hpp"
 // clang-format on
 
 // TODO: pin memory
@@ -69,8 +69,7 @@ int main(int argc, char** argv) {
     }*/
     // std::cout << "\n";
 
-    sort::SingleThread::expand_rotation(str_array, INPUTSIZE, repr_array,
-                                        EXPANDEDSIZE);
+    sort::expand_rotation(str_array, INPUTSIZE, repr_array, EXPANDEDSIZE);
     /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
         if (!(i % 65)) {
             // std::cout << "< " << i / 65 << " >\n";
@@ -81,8 +80,7 @@ int main(int argc, char** argv) {
     // Scan for distribution
     unsigned int partition_freq[sort::PARTITION_SIZE] = {};
     unsigned int frequency[sort::RADIX_LEVELS][sort::RADIX_SIZE] = {};
-    sort::SingleThread::count_frequency(repr_array, EXPANDEDSIZE,
-                                        partition_freq, frequency);
+    sort::count_frequency(repr_array, EXPANDEDSIZE, partition_freq, frequency);
 
     std::cerr << "partition frequency:\n";
     std::cerr << "(sum = "
@@ -99,14 +97,14 @@ int main(int argc, char** argv) {
 
     // Partition
     std::cerr << "check partition\n";
-    sort::SingleThread::partitioning(repr_array, EXPANDEDSIZE, partition_freq);
+    sort::partitioning(repr_array, EXPANDEDSIZE, partition_freq);
     /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
         // std::cout << repr_array[i] << std::endl;
     }*/
 
     // Sort
     std::cerr << "check sorting\n";
-    sort::SingleThread::radix_sort(repr_array, EXPANDEDSIZE, frequency);
+    sort::radix_sort(repr_array, EXPANDEDSIZE, frequency);
     /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
         // std::cout << repr_array[i] << std::endl;
     }*/

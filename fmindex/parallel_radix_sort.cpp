@@ -11,29 +11,29 @@
 #include <cstring>
 
 #include <memory>
+#include <future>
 
-#include "radix_sort.hpp"
+#include "parallel_radix_sort.hpp"
 // clang-format on
 
 namespace sort {
-
-namespace MultiThread {
 
 void expand_rotation(entry* array, const int array_size, entry_repr* repr_array,
                      const int repr_array_size) {
     /* Expands and creates the entire table of representations of
      * strings-to-be-sorted
      */
-    int repr_counter = 0;  // this will become a concurrency bottleneck
     for (int str_idx = 0; str_idx != array_size; ++str_idx) {
-        for (int str_shift = 0; str_shift != 65; ++str_shift) {
-            repr_array[repr_counter].str_idx = &(array[str_idx]);
-            repr_array[repr_counter].str_shift = str_shift;
-            ++repr_counter;
-        }
-    }
-    if (repr_counter != repr_array_size) {  // DEBUG:
-        throw std::runtime_error("expanded-array size mismatch");
+        auto work = std::async(
+            std::launch::async, [&array, &repr_array, str_idx]() -> void {
+                int repr_counter = str_idx * 65;
+                for (int str_shift = 0; str_shift != 65; ++str_shift) {
+                    repr_array[repr_counter].str_idx = &(array[str_idx]);
+                    repr_array[repr_counter].str_shift = str_shift;
+                    ++repr_counter;
+                }
+            });
+        work.wait();
     }
 }
 
@@ -197,7 +197,5 @@ void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
         std::free(alt_array);
     }
 }
-
-}  // namespace MultiThread
 
 }  // namespace sort

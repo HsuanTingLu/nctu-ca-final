@@ -58,7 +58,7 @@ target_compile_options(fmindex
 
 
 
-add_executable(stlsort stlsort.cpp)
+add_executable(stlsort EXCLUDE_FROM_ALL stlsort.cpp)
 
 target_compile_features(stlsort PUBLIC cxx_std_14)
 
