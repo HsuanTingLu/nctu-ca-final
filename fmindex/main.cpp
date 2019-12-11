@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
     }*/
     // std::cout << "\n";
 
-    sort::expand_rotation(str_array, INPUTSIZE, repr_array, EXPANDEDSIZE);
+    sort::expand_rotation(str_array, INPUTSIZE, repr_array);
     /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
         if (!(i % 65)) {
             // std::cout << "< " << i / 65 << " >\n";
@@ -105,9 +105,9 @@ int main(int argc, char** argv) {
     // Sort
     std::cerr << "check sorting\n";
     sort::radix_sort(repr_array, EXPANDEDSIZE, frequency);
-    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        // std::cout << repr_array[i] << std::endl;
-    }*/
+    for (int i = 0; i != EXPANDEDSIZE; ++i) {
+        std::cout << repr_array[i] << std::endl;
+    }
 
     // cleanup
     std::free(str_array);

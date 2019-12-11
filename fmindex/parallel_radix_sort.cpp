@@ -18,8 +18,8 @@
 
 namespace sort {
 
-void expand_rotation(entry* array, const int array_size, entry_repr* repr_array,
-                     const int repr_array_size) {
+void expand_rotation(entry* array, const int array_size,
+                     entry_repr* repr_array) {
     /* Expands and creates the entire table of representations of
      * strings-to-be-sorted
      */
@@ -45,41 +45,47 @@ void count_frequency(entry_repr* repr_array, const int repr_array_size,
      * data
      */
     for (int i = 0; i != repr_array_size; ++i) {
-        entry_repr repr = repr_array[i];
+        auto work = std::async(
+            std::launch::async,
+            [&repr_array, &partition_freq, &frequency, i]() -> void {
+                entry_repr repr = repr_array[i];
 
-        // extract full string
-        uint8_t tmp[65];
-        std::memcpy(tmp, repr.str_idx->data + repr.str_shift,
-                    (65 - repr.str_shift) * sizeof(uint8_t));
-        std::memcpy(tmp + 65 - repr.str_shift, repr.str_idx->data,
-                    (repr.str_shift) * sizeof(uint8_t));
+                // extract full string
+                uint8_t tmp[65];
+                std::memcpy(tmp, repr.str_idx->data + repr.str_shift,
+                            (65 - repr.str_shift) * sizeof(uint8_t));
+                std::memcpy(tmp + 65 - repr.str_shift, repr.str_idx->data,
+                            (repr.str_shift) * sizeof(uint8_t));
 
-        // partitioning pass
-        /* DEBUG:
-        std::cerr << "@@@ " << utils::reverse_char(tmp[0]) << " "
-                  << utils::reverse_char(tmp[1]) << " "
-                  << utils::reverse_char(tmp[2]) << " "
-                  << utils::reverse_char(tmp[3]) << " "
-                  << utils::reverse_char(tmp[4]) << " -> " << repr << " @@@\n";
-        std::cerr << "                 ";
-        for (uint8_t i = 0; i != 65; ++i) {
-            std::cerr << utils::reverse_char(tmp[i]);
-        }
-        std::cerr << " <-\n";
-        */
-        partition_freq[static_cast<unsigned int>(tmp[0]) * 625 +
-                       static_cast<unsigned int>(tmp[1]) * 125 +
-                       static_cast<unsigned int>(tmp[2]) * 25 +
-                       static_cast<unsigned int>(tmp[3]) * 5 +
-                       static_cast<unsigned int>(tmp[4])]++;
-        // radix pass
-        for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
-            unsigned int char_idx = 5 + pass * 4;
-            frequency[pass][static_cast<unsigned int>(tmp[char_idx + 0]) * 125 +
-                            static_cast<unsigned int>(tmp[char_idx + 1]) * 25 +
-                            static_cast<unsigned int>(tmp[char_idx + 2]) * 5 +
-                            static_cast<unsigned int>(tmp[char_idx + 3])]++;
-        }
+                // partitioning pass
+                /* DEBUG:
+                std::cerr << "@@@ " << utils::reverse_char(tmp[0]) << " "
+                          << utils::reverse_char(tmp[1]) << " "
+                          << utils::reverse_char(tmp[2]) << " "
+                          << utils::reverse_char(tmp[3]) << " "
+                          << utils::reverse_char(tmp[4]) << " -> " << repr << "
+                @@@\n"; std::cerr << "                 "; for (uint8_t i = 0; i
+                != 65; ++i) { std::cerr << utils::reverse_char(tmp[i]);
+                }
+                std::cerr << " <-\n";
+                */
+                partition_freq[static_cast<unsigned int>(tmp[0]) * 625 +
+                               static_cast<unsigned int>(tmp[1]) * 125 +
+                               static_cast<unsigned int>(tmp[2]) * 25 +
+                               static_cast<unsigned int>(tmp[3]) * 5 +
+                               static_cast<unsigned int>(tmp[4])]++;
+                // radix pass
+                for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
+                    unsigned int char_idx = 5 + pass * 4;
+                    frequency[pass]
+                             [static_cast<unsigned int>(tmp[char_idx + 0]) *
+                                  125 +
+                              static_cast<unsigned int>(tmp[char_idx + 1]) *
+                                  25 +
+                              static_cast<unsigned int>(tmp[char_idx + 2]) * 5 +
+                              static_cast<unsigned int>(tmp[char_idx + 3])]++;
+                }
+            });
     }
 }
 

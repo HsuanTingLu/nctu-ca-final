@@ -30,8 +30,8 @@ constexpr const uint32_t RADIX_MASK = 0xffff;
 
 // TODO: extern void insertionSort(std::vector<char*>);
 
-void expand_rotation(entry* array, const int array_size, entry_repr* repr_array,
-                     const int repr_array_size);
+void expand_rotation(entry* array, const int array_size,
+                     entry_repr* repr_array);
 
 void count_frequency(entry_repr* repr_array, const int repr_array_size,
                      unsigned int partition_freq[PARTITION_SIZE],
