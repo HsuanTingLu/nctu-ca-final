@@ -27,7 +27,7 @@ async function run() {
             }
         };
 
-        await exec.exec("eval", ["'(time", "./build/fmindex/" + target, "test_" + size + ".txt", size + ")", "2>&1", "|", "awk", String.raw`"/real\t([0-9]+m[0-9]+.[0-9]+s)/"'`], options);
+        await exec.exec("time", ["./build/fmindex/" + target, "test_" + size + ".txt", size], options);
 
         core.setOutput("runtime", runOutput);
     } catch (error) {
