@@ -17,8 +17,6 @@
 
 namespace sort {
 
-namespace SingleThread {
-
 void expand_rotation(entry* array, const int array_size, entry_repr* repr_array,
                      const int repr_array_size) {
     /* Expands and creates the entire table of representations of
@@ -197,7 +195,5 @@ void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
         std::free(alt_array);
     }
 }
-
-}  // namespace SingleThread
 
 }  // namespace sort

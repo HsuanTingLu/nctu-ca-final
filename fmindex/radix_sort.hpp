@@ -30,8 +30,6 @@ constexpr const uint32_t RADIX_MASK = 0xffff;
 
 // TODO: extern void insertionSort(std::vector<char*>);
 
-namespace SingleThread {
-
 void expand_rotation(entry* array, const int array_size, entry_repr* repr_array,
                      const int repr_array_size);
 
@@ -44,8 +42,6 @@ void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
 
 void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
                 unsigned int frequency[sort::RADIX_LEVELS][sort::RADIX_SIZE]);
-
-}  // namespace SingleThread
 
 }  // namespace sort
 
