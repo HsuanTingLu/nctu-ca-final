@@ -4,7 +4,8 @@ if(NOT ${UNIX})
     message(FATAL_ERROR " not intended for non-UNIX systems")
 endif()
 
-project(howhow LANGUAGES CXX CUDA)
+project(howhow LANGUAGES CXX)
+#enable_language(CUDA)
 
-add_subdirectory(strsort)
-add_subdirectory(FMindex)
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+add_subdirectory(fmindex)

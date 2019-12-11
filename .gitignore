@@ -1,5 +1,11 @@
+# editor settings
+.vscode/
+
 # CMake
 build/
+
+# SourceTrail
+srctrail/
 
 # CUDA
 *.i
@@ -8,3 +14,6 @@ build/
 *.ptx
 *.cubin
 *.fatbin
+
+# NodeJS
+node_modules/

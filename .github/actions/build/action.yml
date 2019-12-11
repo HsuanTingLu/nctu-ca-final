@@ -10,13 +10,8 @@ inputs:
     required: true
 # outputs:
 runs:
-  using: "docker"
-  # env:
-  image: "../../../Dockerfile"
-  entrypoint: "/scripts/build.sh"
-  args:
-    - ${{ inputs.target }}
-    - ${{ inputs.cmake_build_type }}
+  using: "node12"
+  main: "../../../scripts/build.js"
 branding:
   icon: "tool"
   color: "blue"
