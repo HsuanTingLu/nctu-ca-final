@@ -23,7 +23,7 @@ void expand_rotation(entry* array, const int array_size,
     /* Expands and creates the entire table of representations of
      * strings-to-be-sorted
      */
-    std::future<void> work[array_size];
+    std::future<void>* work = new std::future<void>[array_size];
     for (int str_idx = 0; str_idx != array_size; ++str_idx) {
         work[str_idx] = std::async(
             std::launch::async, [&array, &repr_array, str_idx]() -> void {
@@ -38,6 +38,7 @@ void expand_rotation(entry* array, const int array_size,
     for (int str_idx = 0; str_idx != array_size; ++str_idx) {
         work[str_idx].wait();
     }
+    delete[] work;
 }
 
 void count_frequency(entry_repr* repr_array, const int repr_array_size,
@@ -47,7 +48,7 @@ void count_frequency(entry_repr* repr_array, const int repr_array_size,
      * so that it can be sized appropriately, aka taking the histogram of the
      * data
      */
-    std::future<void> work[repr_array_size];
+    std::future<void>* work = new std::future<void>[repr_array_size];
     for (int i = 0; i != repr_array_size; ++i) {
         work[i] = std::async(
             std::launch::async,
@@ -94,13 +95,13 @@ void count_frequency(entry_repr* repr_array, const int repr_array_size,
     for (int i = 0; i != repr_array_size; ++i) {
         work[i].wait();
     }
-}
+    delete[] work;
+}  // namespace sort
 
 void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
                   unsigned int partition_freq[sort::PARTITION_SIZE]) {
     // init the bucket boundaries
-    entry_repr* alt_array = static_cast<entry_repr*>(
-        std::malloc(repr_array_size * sizeof(entry_repr)));
+    entry_repr* alt_array = new entry_repr[repr_array_size];
 
     entry_repr* bucket_ptrs[PARTITION_SIZE];
     entry_repr* next = alt_array;
@@ -143,14 +144,13 @@ void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
     }
 
     // swap the entire repr array
-    std::free(repr_array);
+    delete[] repr_array;
     repr_array = alt_array;
 }
 
 void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
                 unsigned int frequency[sort::RADIX_LEVELS][sort::RADIX_SIZE]) {
-    entry_repr* alt_array = static_cast<entry_repr*>(
-        std::malloc(repr_array_size * sizeof(entry_repr)));
+    entry_repr* alt_array = new entry_repr[repr_array_size];
     entry_repr *from = repr_array,
                *to = alt_array;  // alternation pointers
 
@@ -204,10 +204,10 @@ void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
     // return the correct array if ${RADIX_LEVELS} is odd
     if (RADIX_LEVELS & 1) {
         // swap the entire repr array
-        std::free(repr_array);
+        delete[] repr_array;
         repr_array = alt_array;
     } else {
-        std::free(alt_array);
+        delete[] alt_array;
     }
 }
 

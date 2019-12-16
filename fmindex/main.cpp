@@ -51,9 +51,8 @@ int main(int argc, char** argv) {
         // TODO: Count number of lines of the input file, HACK: use "wc -l"
 
         // Allocate array
-        str_array = static_cast<entry*>(std::malloc(INPUTSIZE * sizeof(entry)));
-        repr_array = static_cast<entry_repr*>(
-            std::malloc(EXPANDEDSIZE * sizeof(entry_repr)));
+        str_array = new entry[INPUTSIZE];
+        repr_array = new entry_repr[EXPANDEDSIZE];
 
         // Read input
         read_input(&ifs, str_array, INPUTSIZE);
@@ -61,20 +60,21 @@ int main(int argc, char** argv) {
     } else {
         throw std::invalid_argument("Cannot open file");
     }
-
     std::cout << std::endl;
 
-    /*for (int i = 0; i != INPUTSIZE; ++i) {
-        // std::cout << str_array[i] << std::endl;
-    }*/
-    // std::cout << "\n";
+    /*std::cout << "read input" << std::endl;
+    for (int i = 0; i != INPUTSIZE; ++i) {
+        std::cout << str_array[i] << std::endl;
+    }
+    std::cout << "\n";*/
 
     sort::expand_rotation(str_array, INPUTSIZE, repr_array);
-    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
+    /*std::cout << "post expansion" << std::endl;
+    for (int i = 0; i != EXPANDEDSIZE; ++i) {
         if (!(i % 65)) {
-            // std::cout << "< " << i / 65 << " >\n";
+            std::cout << "< " << i / 65 << " >\n";
         }
-        // std::cout << repr_array[i] << std::endl;
+        std::cout << repr_array[i] << std::endl;
     }*/
 
     // Scan for distribution
@@ -88,28 +88,30 @@ int main(int argc, char** argv) {
                                  partition_freq + sort::PARTITION_SIZE, 0)
               << ")\n";
     /*for (int i = 0; i != sort::PARTITION_SIZE; ++i) {
-        // std::cerr << partition_freq[i] << " ";
+        std::cout << partition_freq[i] << " ";
         if (!(i % 80) && i != 0) {
-            // std::cerr << "\n";
+            std::cout << "\n";
         }
-    }*/
-    // std::cerr << "\n";
+    }
+    std::cout << "\n";*/
 
     // Partition
-    std::cerr << "check partition\n";
+    std::cout << "check partition" << std::endl;
     sort::partitioning(repr_array, EXPANDEDSIZE, partition_freq);
-    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
+    std::cout << "post partitioning" << std::endl;
+    for (int i = 0; i != EXPANDEDSIZE; ++i) {
         // std::cout << repr_array[i] << std::endl;
-    }*/
+    }
 
     // Sort
     std::cerr << "check sorting\n";
     sort::radix_sort(repr_array, EXPANDEDSIZE, frequency);
+    std::cout <<"post sorting" << std::endl;
     for (int i = 0; i != EXPANDEDSIZE; ++i) {
         std::cout << repr_array[i] << std::endl;
     }
 
     // cleanup
-    std::free(str_array);
-    std::free(repr_array);
+    delete str_array;
+    delete repr_array;
 }
