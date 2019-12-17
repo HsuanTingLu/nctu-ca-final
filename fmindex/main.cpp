@@ -80,13 +80,27 @@ int main(int argc, char** argv) {
     // Scan for distribution
     unsigned int partition_freq[sort::PARTITION_SIZE] = {};
     unsigned int frequency[sort::RADIX_LEVELS][sort::RADIX_SIZE] = {};
+    std::cerr << "counting frequency\n";
     sort::count_frequency(repr_array, EXPANDEDSIZE, partition_freq, frequency);
+    std::cerr << "post frequency counting\n";
 
+    // partition frequency sanity check
     std::cerr << "partition frequency:\n";
-    std::cerr << "(sum = "
-              << std::accumulate(partition_freq,
-                                 partition_freq + sort::PARTITION_SIZE, 0)
-              << ")\n";
+    int partition_frequency_sum = std::accumulate(
+        partition_freq, partition_freq + sort::PARTITION_SIZE, 0);
+    std::cerr << "(sum = " << partition_frequency_sum << ")\n";
+    // sorting frequency sanity check
+    std::cerr << "sort frequency:\n";
+    for (unsigned int level = 0; level != sort::RADIX_LEVELS; ++level) {
+        int sort_frequency_sum = std::accumulate(
+            frequency[level], frequency[level] + sort::RADIX_SIZE, 0);
+        std::cerr << "level " << level << ": sum = " << sort_frequency_sum
+                  << "\n";
+        if (sort_frequency_sum != EXPANDEDSIZE) {
+            throw std::logic_error("sorting pass frequency sum does not match");
+        }
+    }
+
     /*for (int i = 0; i != sort::PARTITION_SIZE; ++i) {
         std::cout << partition_freq[i] << " ";
         if (!(i % 80) && i != 0) {

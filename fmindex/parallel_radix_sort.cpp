@@ -165,6 +165,7 @@ void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
                *to = alt_array;  // alternation pointers
 
     for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
+        std::cerr << "pass: " << pass << " starts\n";
         // bucket boundaries in array
         entry_repr* bucket_ptrs[RADIX_SIZE];
         std::mutex bucket_mutex[RADIX_SIZE];
@@ -178,8 +179,10 @@ void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
 
         // DEBUG: sanity check
         if (next != (to + repr_array_size)) {
+            std::cerr << "sanity failure on pass: " << pass << "\n";
             throw std::logic_error(
-                "radix_sort:: final ptr should be exactly at the end of the "
+                "radix_sort:: final ptr should be exactly at the end of "
+                "the "
                 "alt_array");
         }
 
@@ -239,6 +242,7 @@ void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
         entry_repr* ptr_swap_tmp = from;
         from = to;
         to = ptr_swap_tmp;
+        std::cerr << "pass: " << pass << " ends\n";
     }
 
     // return the correct array if ${RADIX_LEVELS} is odd
