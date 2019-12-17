@@ -5,6 +5,7 @@ target_sources(fmindex
     PRIVATE
         types.hpp
         types.cpp
+        TA.hpp
 )
 
 target_sources(fmindex

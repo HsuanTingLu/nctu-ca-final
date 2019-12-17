@@ -1,68 +1,27 @@
-#include <cmath>
-#include <cstdio>
+#ifndef TA_HPP_
+#define TA_HPP_
+
+// clang-format off
 #include <cstdlib>
-#include <cstring>
-#include <fstream>
-#include <iostream>
-
-// ----DO NOT CHANGE NAMES, ONLY MODIFY VALUES----
-
-// Final Values that will be compared for correctness
-// You may change the function prototypes and definitions, but you need to
-// present final results in these arrays
-
-// ----Structures for correctness check----
-int **SA_Final_student;
-int **L_counts_student;
-char *L_student;
-int F_counts_student[] = {0, 0, 0, 0};
-// --------
-
-// --------
-
-//----DO NOT CHANGE----
-
-// Read file to get reads
-char **inputReads(char *file_path, int &read_count, int &length) {
-    FILE *read_file = std::fopen(file_path, "r");
-    int ch = 0;
-    read_count = 0;
-    do {
-        ch = std::fgetc(read_file);
-        if (ch == '\n') read_count++;
-    } while (ch != EOF);
-    std::rewind(read_file);
-    char **reads = new char *[read_count];
-    int i = 0;
-    size_t len = 0;
-    for (i = 0; i < read_count; i++) {
-        reads[i] = NULL;
-        len = 0;
-        getline(&reads[i], &len, read_file);
-    }
-    std::fclose(read_file);
-    int j = 0;
-    while (reads[0][j] != '\n') j++;
-    length = j + 1;
-    for (i = 0; i < read_count; i++) reads[i][j] = '$';
-    return reads;
-}
+// clang-format on
 
 // Check correctness of values
-int checker(int read_count, int read_length, int **SA_Final, char *L,
-            int **L_counts, int *F_counts) {
+int checker(int read_count, int read_length, char *L_student,
+            int **SA_Final_student, int **L_counts_student,
+            int *F_counts_student, char *L, int **SA_Final, int **L_counts,
+            int *F_counts) {
     int correct = 1;
     for (int i = 0; i < read_count * read_length; i++) {
-        if (::L_student[i] != L[i]) correct = 0;
+        if (L_student[i] != L[i]) correct = 0;
         for (int j = 0; j < 2; j++) {
-            if (::SA_Final_student[i][j] != SA_Final[i][j]) correct = 0;
+            if (SA_Final_student[i][j] != SA_Final[i][j]) correct = 0;
         }
         for (int j = 0; j < 4; j++) {
-            if (::L_counts_student[i][j] != L_counts[i][j]) correct = 0;
+            if (L_counts_student[i][j] != L_counts[i][j]) correct = 0;
         }
     }
     for (int i = 0; i < 4; i++) {
-        if (::F_counts_student[i] != F_counts[i]) correct = 0;
+        if (F_counts_student[i] != F_counts[i]) correct = 0;
     }
     return correct;
 }
@@ -77,9 +36,7 @@ void rotateRead(char *read, char *rotatedRead, int length) {
 char **generateSuffixes(char *read, int length) {
     char **suffixes = static_cast<char **>(malloc(length * sizeof(char *)));
     suffixes[0] = static_cast<char *>(malloc(length * sizeof(char)));
-    for (int j = 0; j < length; j++) {
-        suffixes[0][j] = read[j];
-    }
+    for (int j = 0; j < length; j++) suffixes[0][j] = read[j];
     for (int i = 1; i < length; i++) {
         suffixes[i] = static_cast<char *>(malloc(length * sizeof(char)));
         rotateRead(suffixes[i - 1], suffixes[i], length);
@@ -200,78 +157,4 @@ int **makeFMIndex(char ***suffixes, int read_count, int read_length,
     return L_count;
 }
 
-// ----DO NOT CHANGE----
-
-int main(int argc, char *argv[]) {
-    int read_count = 0;
-    int read_length = 0;
-
-    int **SA_Final;
-    int **L_counts;
-    char *L;
-    int F_counts[4] = {0, 0, 0, 0};
-
-    char **reads = inputReads(argv[1], read_count,
-                              read_length);  // Input reads from file
-    char ***suffixes =
-        new char **[read_count];  // Storage for read-wise suffixes
-
-    // ----Structures for correctness check----
-    L = new char[read_count * read_length];  // Final storage for last column of
-                                             // sorted suffixes
-    // ----Structures for correctness check----
-
-    // ----Default implementation----
-    // ----Time capture start----
-    auto TA_timer_start = std::chrono::high_resolution_clock::now();
-    // Generate read-wise suffixes
-    for (int i = 0; i < read_count; i++) {
-        suffixes[i] = generateSuffixes(reads[i], read_length);
-    }
-
-    // Calculate final FM-Index
-    L_counts =
-        makeFMIndex(suffixes, read_count, read_length, F_counts, L, SA_Final);
-
-    auto TA_timer_end = std::chrono::high_resolution_clock::now();
-    double TA_time_spent =
-        static_cast<double>(
-            std::chrono::duration_cast<std::chrono::microseconds>(
-                TA_timer_end - TA_timer_start)
-                .count()) /
-        1000000;
-    // ----Time capture end----
-    //--------
-
-    // ----Your implementations----
-    auto student_timer_start = std::chrono::high_resolution_clock::now();
-    // ----Call your functions here----
-
-    // ----Call your functions here----
-    auto student_timer_end = std::chrono::high_resolution_clock::now();
-    double student_time_spent =
-        static_cast<double>(
-            std::chrono::duration_cast<std::chrono::microseconds>(
-                student_timer_end - student_timer_start)
-                .count()) /
-        1000000;
-    // --------
-
-    // ----For debug purpose only----
-    for (int i = 0; i < read_count * read_length; i++)
-        std::cout << L[i] << "\t" << SA_Final[i][0] << "," << SA_Final[i][1]
-                  << "\t" << L_counts[i][0] << "," << L_counts[i][1] << ","
-                  << L_counts[i][2] << "," << L_counts[i][3] << std::endl;
-
-    // --------
-
-    // ----Correction check and speedup calculation----
-    double speedup = 0.0;
-    std::cout << "spent time " << TA_time_spent << "\n";
-    /*if (checker(read_count, read_length, SA_Final, L, L_counts, F_counts) ==
-    1) { speedup = TA_time_spent / student_time_spent;
-    }*/
-    std::cout << "Speedup=" << speedup << std::endl;
-    // --------
-    return 0;
-}
+#endif
