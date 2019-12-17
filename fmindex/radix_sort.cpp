@@ -6,7 +6,6 @@
  * (see LICENSE or https://www.gnu.org/licenses/)
  */
 
-
 // clang-format off
 #include <cstdlib>
 #include <cstring>
@@ -17,8 +16,6 @@
 // clang-format on
 
 namespace sort {
-
-namespace SingleThread {
 
 void expand_rotation(entry* array, const int array_size, entry_repr* repr_array,
                      const int repr_array_size) {
@@ -198,19 +195,5 @@ void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
         std::free(alt_array);
     }
 }
-
-}  // namespace SingleThread
-
-namespace MultiThread {
-
-void radix_sort() {}
-
-}  // namespace MultiThread
-
-namespace GPU {
-
-void radix_sort() {}
-
-}  // namespace GPU
 
 }  // namespace sort
