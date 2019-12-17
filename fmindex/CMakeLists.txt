@@ -55,6 +55,12 @@ target_compile_options(fmindex
 )
 
 
+if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL Linux)
+    find_package(Threads REQUIRED)
+    target_link_libraries(fmindex Threads::Threads)
+endif()
+
+
 
 
 

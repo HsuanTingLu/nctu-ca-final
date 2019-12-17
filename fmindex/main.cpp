@@ -19,7 +19,7 @@
 #include <numeric>
 
 #include "types.hpp"
-#include "radix_sort.hpp"
+#include "parallel_radix_sort.hpp"
 // clang-format on
 
 // TODO: pin memory
@@ -51,9 +51,8 @@ int main(int argc, char** argv) {
         // TODO: Count number of lines of the input file, HACK: use "wc -l"
 
         // Allocate array
-        str_array = static_cast<entry*>(std::malloc(INPUTSIZE * sizeof(entry)));
-        repr_array = static_cast<entry_repr*>(
-            std::malloc(EXPANDEDSIZE * sizeof(entry_repr)));
+        str_array = new entry[INPUTSIZE];
+        repr_array = new entry_repr[EXPANDEDSIZE];
 
         // Read input
         read_input(&ifs, str_array, INPUTSIZE);
@@ -61,57 +60,73 @@ int main(int argc, char** argv) {
     } else {
         throw std::invalid_argument("Cannot open file");
     }
-
     std::cout << std::endl;
 
-    /*for (int i = 0; i != INPUTSIZE; ++i) {
-        // std::cout << str_array[i] << std::endl;
-    }*/
-    // std::cout << "\n";
+    /*std::cout << "read input" << std::endl;
+    for (int i = 0; i != INPUTSIZE; ++i) {
+        std::cout << str_array[i] << std::endl;
+    }
+    std::cout << "\n";*/
 
-    sort::expand_rotation(str_array, INPUTSIZE, repr_array,
-                                        EXPANDEDSIZE);
-    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
+    sort::expand_rotation(str_array, INPUTSIZE, repr_array);
+    /*std::cout << "post expansion" << std::endl;
+    for (int i = 0; i != EXPANDEDSIZE; ++i) {
         if (!(i % 65)) {
-            // std::cout << "< " << i / 65 << " >\n";
+            std::cout << "< " << i / 65 << " >\n";
         }
-        // std::cout << repr_array[i] << std::endl;
+        std::cout << repr_array[i] << std::endl;
     }*/
 
     // Scan for distribution
     unsigned int partition_freq[sort::PARTITION_SIZE] = {};
     unsigned int frequency[sort::RADIX_LEVELS][sort::RADIX_SIZE] = {};
-    sort::count_frequency(repr_array, EXPANDEDSIZE,
-                                        partition_freq, frequency);
 
+    std::cerr << "counting frequency\n";
+    sort::count_frequency(repr_array, EXPANDEDSIZE, partition_freq, frequency);
+    std::cerr << "post frequency counting\n";
+
+    // partition frequency sanity check
     std::cerr << "partition frequency:\n";
-    std::cerr << "(sum = "
-              << std::accumulate(partition_freq,
-                                 partition_freq + sort::PARTITION_SIZE, 0)
-              << ")\n";
-    /*for (int i = 0; i != sort::PARTITION_SIZE; ++i) {
-        // std::cerr << partition_freq[i] << " ";
-        if (!(i % 80) && i != 0) {
-            // std::cerr << "\n";
+    int partition_frequency_sum = std::accumulate(
+        partition_freq, partition_freq + sort::PARTITION_SIZE, 0);
+    std::cerr << "(sum = " << partition_frequency_sum << ")\n";
+    // sorting frequency sanity check
+    std::cerr << "sort frequency:\n";
+    for (unsigned int level = 0; level != sort::RADIX_LEVELS; ++level) {
+        int sort_frequency_sum = std::accumulate(
+            frequency[level], frequency[level] + sort::RADIX_SIZE, 0);
+        std::cerr << "level " << level << ": sum = " << sort_frequency_sum
+                  << "\n";
+        if (sort_frequency_sum != EXPANDEDSIZE) {
+            throw std::logic_error("sorting pass frequency sum does not match");
         }
-    }*/
-    // std::cerr << "\n";
+    }
+
+    /*for (int i = 0; i != sort::PARTITION_SIZE; ++i) {
+        std::cout << partition_freq[i] << " ";
+        if (!(i % 80) && i != 0) {
+            std::cout << "\n";
+        }
+    }
+    std::cout << "\n";*/
 
     // Partition
-    std::cerr << "check partition\n";
+    std::cout << "do partition" << std::endl;
     sort::partitioning(repr_array, EXPANDEDSIZE, partition_freq);
+    std::cout << "post partitioning" << std::endl;
     /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        // std::cout << repr_array[i] << std::endl;
+        std::cout << repr_array[i] << std::endl;
     }*/
 
     // Sort
     std::cerr << "check sorting\n";
     sort::radix_sort(repr_array, EXPANDEDSIZE, frequency);
+    std::cout << "post sorting" << std::endl;
     /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        // std::cout << repr_array[i] << std::endl;
+        std::cout << repr_array[i] << std::endl;
     }*/
 
     // cleanup
-    std::free(str_array);
-    std::free(repr_array);
+    delete str_array;
+    delete repr_array;
 }
