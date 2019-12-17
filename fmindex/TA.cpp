@@ -1,9 +1,9 @@
 #include <sys/time.h>
 
 #include <cmath>
-#include <cstring>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 
@@ -23,14 +23,6 @@ int F_counts_student[] = {0, 0, 0, 0};
 // --------
 
 //----DO NOT CHANGE----
-
-int read_count = 0;
-int read_length = 0;
-
-int **SA_Final;
-int **L_counts;
-char *L;
-int F_counts[] = {0, 0, 0, 0};
 
 // Read file to get reads
 char **inputReads(char *file_path, int &read_count, int &length) {
@@ -59,19 +51,20 @@ char **inputReads(char *file_path, int &read_count, int &length) {
 }
 
 // Check correctness of values
-int checker() {
+int checker(int read_count, int read_length, int **SA_Final, char *L,
+            int **L_counts, int *F_counts) {
     int correct = 1;
     for (int i = 0; i < read_count * read_length; i++) {
-        if (L_student[i] != L[i]) correct = 0;
+        if (::L_student[i] != L[i]) correct = 0;
         for (int j = 0; j < 2; j++) {
-            if (SA_Final_student[i][j] != SA_Final[i][j]) correct = 0;
+            if (::SA_Final_student[i][j] != SA_Final[i][j]) correct = 0;
         }
         for (int j = 0; j < 4; j++) {
-            if (L_counts_student[i][j] != L_counts[i][j]) correct = 0;
+            if (::L_counts_student[i][j] != L_counts[i][j]) correct = 0;
         }
     }
     for (int i = 0; i < 4; i++) {
-        if (F_counts_student[i] != F_counts[i]) correct = 0;
+        if (::F_counts_student[i] != F_counts[i]) correct = 0;
     }
     return correct;
 }
@@ -108,7 +101,7 @@ int compSuffixes(char *suffix1, char *suffix2, int length) {
 
 // Calculates the final FM-Index
 int **makeFMIndex(char ***suffixes, int read_count, int read_length,
-                  int F_count[], char *L) {
+                  int F_count[], char *L, int **&SA_Final) {
     int i, j;
 
     SA_Final =
@@ -210,6 +203,14 @@ int **makeFMIndex(char ***suffixes, int read_count, int read_length,
 // ----DO NOT CHANGE----
 
 int main(int argc, char *argv[]) {
+    int read_count = 0;
+    int read_length = 0;
+
+    int **SA_Final;
+    int **L_counts;
+    char *L;
+    int F_counts[4] = {0, 0, 0, 0};
+
     char **reads = inputReads(argv[1], read_count,
                               read_length);  // Input reads from file
     char ***suffixes =
@@ -229,7 +230,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Calculate final FM-Index
-    L_counts = makeFMIndex(suffixes, read_count, read_length, F_counts, L);
+    L_counts =
+        makeFMIndex(suffixes, read_count, read_length, F_counts, L, SA_Final);
 
     auto TA_timer_end = std::chrono::high_resolution_clock::now();
     double TA_time_spent =
@@ -256,18 +258,18 @@ int main(int argc, char *argv[]) {
     // --------
 
     // ----For debug purpose only----
-    /*for (int i = 0; i < read_count * read_length; i++)
+    for (int i = 0; i < read_count * read_length; i++)
         std::cout << L[i] << "\t" << SA_Final[i][0] << "," << SA_Final[i][1]
                   << "\t" << L_counts[i][0] << "," << L_counts[i][1] << ","
                   << L_counts[i][2] << "," << L_counts[i][3] << std::endl;
-    */
+
     // --------
 
     // ----Correction check and speedup calculation----
     double speedup = 0.0;
     std::cout << "spent time " << TA_time_spent << "\n";
-    /*if (checker() == 1) {
-        speedup = TA_time_spent / student_time_spent;
+    /*if (checker(read_count, read_length, SA_Final, L, L_counts, F_counts) ==
+    1) { speedup = TA_time_spent / student_time_spent;
     }*/
     std::cout << "Speedup=" << speedup << std::endl;
     // --------
