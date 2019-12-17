@@ -1,14 +1,25 @@
-add_executable(fmindex)
+add_executable(fmindex main.cpp)
 
 
 target_sources(fmindex
     PRIVATE
         types.hpp
-        radix_sort.hpp
-
-        main.cpp
         types.cpp
-        radix_sort.cpp
+)
+
+target_sources(fmindex
+    PRIVATE
+        # cpu, single thread
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,cpu>,radix_sort.hpp,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,cpu>,radix_sort.cpp,>
+        # cpu, multi thread
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,parallel>,parallel_radix_sort.hpp,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,parallel>,parallel_radix_sort.cpp,>
+        # gpu, cuda
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,gpu_radix_sort.hpp,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,radix_sort.cpp,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,radix_sort.cuh,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,radix_sort.cu,>
 )
 
 
@@ -39,6 +50,32 @@ set_target_properties(fmindex
 
 target_compile_options(fmindex
     PUBLIC
-        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -pedantic>
-        #$<$<COMPILE_LANGUAGE:CUDA>:>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -pedantic -O3>
+        $<$<COMPILE_LANGUAGE:CUDA>:>
+)
+
+
+if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL Linux)
+    find_package(Threads REQUIRED)
+    target_link_libraries(fmindex Threads::Threads)
+endif()
+
+
+
+
+
+add_executable(stlsort EXCLUDE_FROM_ALL stlsort.cpp)
+
+target_compile_features(stlsort PUBLIC cxx_std_14)
+
+set_target_properties(stlsort
+    PROPERTIES
+        CXX_STANDARD 14
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+)
+
+target_compile_options(stlsort
+    PUBLIC
+        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -pedantic -O3>
 )

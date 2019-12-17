@@ -13,5 +13,5 @@ runs:
   using: "node12"
   main: "../../../scripts/build.js"
 branding:
-  icon: "tool"
+  icon: "package"
   color: "blue"
