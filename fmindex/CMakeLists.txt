@@ -55,6 +55,18 @@ target_compile_options(fmindex
 )
 
 
+target_compile_definitions(fmindex
+    PUBLIC
+        $<IF:$<STREQUAL:$<LOWER_CASE:${CMAKE_HOST_SYSTEM_NAME}>,Linux>,-pthread,>
+)
+
+
+target_link_options(fmindex
+    PUBLIC
+        $<IF:$<STREQUAL:$<LOWER_CASE:${CMAKE_HOST_SYSTEM_NAME}>,Linux>,-pthread,>
+)
+
+
 
 
 
