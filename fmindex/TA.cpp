@@ -33,20 +33,19 @@ char *L;
 int F_counts[] = {0, 0, 0, 0};
 
 // Read file to get reads
-char **inputReads(char *file_path, int *read_count, int *length) {
+char **inputReads(char *file_path, int &read_count, int &length) {
     FILE *read_file = std::fopen(file_path, "r");
-    int ch, lines = 0;
-    char **reads;
+    int ch = 0;
+    read_count = 0;
     do {
         ch = std::fgetc(read_file);
-        if (ch == '\n') lines++;
+        if (ch == '\n') read_count++;
     } while (ch != EOF);
     std::rewind(read_file);
-    reads = new char *[lines];
-    *read_count = lines;
+    char **reads = new char *[read_count];
     int i = 0;
     size_t len = 0;
-    for (i = 0; i < lines; i++) {
+    for (i = 0; i < read_count; i++) {
         reads[i] = NULL;
         len = 0;
         getline(&reads[i], &len, read_file);
@@ -54,8 +53,8 @@ char **inputReads(char *file_path, int *read_count, int *length) {
     std::fclose(read_file);
     int j = 0;
     while (reads[0][j] != '\n') j++;
-    *length = j + 1;
-    for (i = 0; i < lines; i++) reads[i][j] = '$';
+    length = j + 1;
+    for (i = 0; i < read_count; i++) reads[i][j] = '$';
     return reads;
 }
 
@@ -211,8 +210,8 @@ int **makeFMIndex(char ***suffixes, int read_count, int read_length,
 // ----DO NOT CHANGE----
 
 int main(int argc, char *argv[]) {
-    char **reads = inputReads(argv[1], &read_count,
-                              &read_length);  // Input reads from file
+    char **reads = inputReads(argv[1], read_count,
+                              read_length);  // Input reads from file
     char ***suffixes =
         new char **[read_count];  // Storage for read-wise suffixes
 
