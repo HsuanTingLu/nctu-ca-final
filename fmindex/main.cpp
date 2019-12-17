@@ -80,6 +80,7 @@ int main(int argc, char** argv) {
     // Scan for distribution
     unsigned int partition_freq[sort::PARTITION_SIZE] = {};
     unsigned int frequency[sort::RADIX_LEVELS][sort::RADIX_SIZE] = {};
+
     std::cerr << "counting frequency\n";
     sort::count_frequency(repr_array, EXPANDEDSIZE, partition_freq, frequency);
     std::cerr << "post frequency counting\n";
