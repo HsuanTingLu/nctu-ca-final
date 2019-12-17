@@ -71,7 +71,7 @@ entry& entry::operator=(const entry& other) {
         return *this;
     }
     // Reuse storage
-    std::memmove(this->data, other.data, sizeof(uint8_t) * 65);
+    std::memcpy(this->data, other.data, sizeof(uint8_t) * 65);
     return *this;
 }
 
