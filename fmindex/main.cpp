@@ -96,20 +96,20 @@ int main(int argc, char** argv) {
     std::cout << "\n";*/
 
     // Partition
-    std::cout << "check partition" << std::endl;
+    std::cout << "do partition" << std::endl;
     sort::partitioning(repr_array, EXPANDEDSIZE, partition_freq);
     std::cout << "post partitioning" << std::endl;
-    for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        // std::cout << repr_array[i] << std::endl;
-    }
+    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
+        std::cout << repr_array[i] << std::endl;
+    }*/
 
     // Sort
     std::cerr << "check sorting\n";
     sort::radix_sort(repr_array, EXPANDEDSIZE, frequency);
-    std::cout <<"post sorting" << std::endl;
-    for (int i = 0; i != EXPANDEDSIZE; ++i) {
+    std::cout << "post sorting" << std::endl;
+    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
         std::cout << repr_array[i] << std::endl;
-    }
+    }*/
 
     // cleanup
     delete str_array;
