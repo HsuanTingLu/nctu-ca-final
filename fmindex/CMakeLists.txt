@@ -55,17 +55,10 @@ target_compile_options(fmindex
 )
 
 
-target_compile_definitions(fmindex
-    PUBLIC
-        $<IF:$<STREQUAL:$<LOWER_CASE:${CMAKE_HOST_SYSTEM_NAME}>,Linux>,-pthread,>
-)
-
-
-target_link_options(fmindex
-    PUBLIC
-        $<IF:$<STREQUAL:$<LOWER_CASE:${CMAKE_HOST_SYSTEM_NAME}>,Linux>,-pthread,>
-)
-
+if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL Linux)
+    find_package(Threads REQUIRED)
+    target_link_libraries(fmindex Threads::Threads)
+endif()
 
 
 
