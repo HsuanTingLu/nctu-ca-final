@@ -85,11 +85,11 @@ void rotateRead(char *read, char *rotatedRead, int length) {
 
 // Generate Sufixes and their SA's for a read
 char **generateSuffixes(char *read, int length) {
-    char **suffixes = new char *[length];
-    suffixes[0] = new char[length];
+    char **suffixes = static_cast<char **>(malloc(length * sizeof(char *)));
+    suffixes[0] = static_cast<char *>(malloc(length * sizeof(char)));
     for (int j = 0; j < length; j++) suffixes[0][j] = read[j];
     for (int i = 1; i < length; i++) {
-        suffixes[i] = new char[length];
+        suffixes[i] = static_cast<char *>(malloc(length * sizeof(char)));
         rotateRead(suffixes[i - 1], suffixes[i], length);
     }
     return suffixes;
@@ -112,16 +112,21 @@ int **makeFMIndex(char ***suffixes, int read_count, int read_length,
                   int F_count[], char *L) {
     int i, j;
 
-    SA_Final = new int *[read_count * read_length];
-    for (i = 0; i < read_count * read_length; i++) SA_Final[i] = new int[2];
+    SA_Final =
+        static_cast<int **>(malloc(read_count * read_length * sizeof(int *)));
+    for (i = 0; i < read_count * read_length; i++) {
+        SA_Final[i] = static_cast<int *>(malloc(2 * sizeof(int)));
+    }
 
     // Temporary storage for collecting together all suffixes
-    char **temp_suffixes = new char *[read_count * read_length];
+    char **temp_suffixes =
+        static_cast<char **>(malloc(read_count * read_length * sizeof(char *)));
 
     // Initalization of temporary storage
     for (i = 0; i < read_count; i++) {
         for (j = 0; j < read_length; j++) {
-            temp_suffixes[i * read_length + j] = new char[read_length];
+            temp_suffixes[i * read_length + j] =
+                static_cast<char *>(malloc(read_length * sizeof(char)));
             std::memcpy(&temp_suffixes[i * read_length + j], &suffixes[i][j],
                         read_length * sizeof(char));
             SA_Final[i * read_length + j][0] = j;
@@ -129,11 +134,12 @@ int **makeFMIndex(char ***suffixes, int read_count, int read_length,
         }
     }
 
-    char *temp = new char[read_length];
+    char *temp = static_cast<char *>(malloc(read_length * sizeof(char)));
 
-    int **L_count = new int *[read_length * read_count];
+    int **L_count =
+        static_cast<int **>(malloc(read_length * read_count * sizeof(int *)));
     for (i = 0; i < read_length * read_count; i++) {
-        L_count[i] = new int[4];
+        L_count[i] = static_cast<int *>(malloc(4 * sizeof(int)));
         for (j = 0; j < 4; j++) {
             L_count[i][j] = 0;
         }
