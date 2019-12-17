@@ -7,24 +7,22 @@
 #include <fstream>
 #include <iostream>
 
-//-----------------------DO NOT CHANGE NAMES, ONLY MODIFY
-// VALUES--------------------------------------------
+// ----DO NOT CHANGE NAMES, ONLY MODIFY VALUES----
 
 // Final Values that will be compared for correctness
 // You may change the function prototypes and definitions, but you need to
 // present final results in these arrays
-//-----------------------------Structures for correctness
-// check-------------------
+
+// ----Structures for correctness check----
 int **SA_Final_student;
 int **L_counts_student;
 char *L_student;
 int F_counts_student[] = {0, 0, 0, 0};
-//--------------------------------------------------------------------------------
+// --------
 
-//----------------------------------------------------------------------------------------------------------
+// --------
 
-//-----------------------DO NOT
-// CHANGE--------------------------------------------
+//----DO NOT CHANGE----
 
 int read_count = 0;
 int read_length = 0;
@@ -204,8 +202,7 @@ int **makeFMIndex(char ***suffixes, int read_count, int read_length,
     return L_count;
 }
 
-//-----------------------DO NOT
-// CHANGE--------------------------------------------
+// ----DO NOT CHANGE----
 
 int main(int argc, char *argv[]) {
     char **reads = inputReads(argv[1], &read_count,
@@ -213,15 +210,13 @@ int main(int argc, char *argv[]) {
     char ***suffixes =
         new char **[read_count];  // Storage for read-wise suffixes
 
-    //-----------------------------Structures for correctness
-    // check----------------------------------------------
+    // ----Structures for correctness check----
     L = new char[read_count * read_length];  // Final storage for last column of
                                              // sorted suffixes
-    //-----------------------------Structures for correctness
-    // check----------------------------------------------
+    // ----Structures for correctness check----
 
-    //-----------Default implementation----------------
-    //-----------Time capture start--------------------
+    // ----Default implementation----
+    // ----Time capture start----
     struct timeval TimeValue_Start;
     struct timeval TimeValue_Final;
     struct timezone TimeZone_Start;
@@ -236,40 +231,39 @@ int main(int argc, char *argv[]) {
         suffixes[i] = generateSuffixes(reads[i], read_length);
     }
 
-    // Calculate finl FM-Index
+    // Calculate final FM-Index
     L_counts = makeFMIndex(suffixes, read_count, read_length, F_counts, L);
 
     gettimeofday(&TimeValue_Final, &TimeZone_Final);
     time_start = TimeValue_Start.tv_sec * 1000000 + TimeValue_Start.tv_usec;
     time_end = TimeValue_Final.tv_sec * 1000000 + TimeValue_Final.tv_usec;
     time_overhead_default = (time_end - time_start) / 1000000.0;
-    //------------Time capture end----------------------
-    //--------------------------------------------------
+    // ----Time capture end----
+    //--------
 
-    //-----------Your implementations------------------
+    // ----Your implementations----
     gettimeofday(&TimeValue_Final, &TimeZone_Final);
     time_start = TimeValue_Start.tv_sec * 1000000 + TimeValue_Start.tv_usec;
-    //-----------Call your functions here--------------------
+    // ----Call your functions here----
 
-    //-----------Call your functions here--------------------
+    // ----Call your functions here----
     time_end = TimeValue_Final.tv_sec * 1000000 + TimeValue_Final.tv_usec;
     time_overhead_student = (time_end - time_start) / 1000000.0;
-    //--------------------------------------------------
+    // --------
 
-    //----------------For debug purpose only-----------------
+    // ----For debug purpose only----
     for (int i = 0; i < read_count * read_length; i++)
         std::cout << L[i] << "\t" << SA_Final[i][0] << "," << SA_Final[i][1]
                   << "\t" << L_counts[i][0] << "," << L_counts[i][1] << ","
                   << L_counts[i][2] << "," << L_counts[i][3] << std::endl;
-    //--------------------------------------------------
+    // --------
 
-    //---------------Correction check and speedup
-    // calculation----------------------
+    // ----Correction check and speedup calculation----
     float speedup = 0.0;
     /*if (checker() == 1) {
         speedup = time_overhead_default / time_overhead_student;
     }*/
     std::cout << "Speedup=" << speedup << std::endl;
-    //-----------------------------------------------------------------------------
+    // --------
     return 0;
 }
