@@ -17,6 +17,7 @@
 #include <string>
 #include <stdexcept>
 #include <numeric>
+#include <algorithm>
 
 #include "types.hpp"
 #include "parallel_radix_sort.hpp"
@@ -34,32 +35,27 @@ void read_input(std::ifstream* ifs, entry* array, const int INPUTSIZE) {
 }
 
 int main(int argc, char** argv) {
-    if (argc != 1 + 2) {  // DEBUG:
+    if (argc != 1 + 1) {
         throw std::invalid_argument("2 arguments needed");
     }
-    // HACK: use "wc -l" for file line counting
-    const int INPUTSIZE = std::stoi(argv[2]);
-    const int EXPANDEDSIZE = 65 * INPUTSIZE;
-    std::cerr << "expected output size :: str_array: " << INPUTSIZE
-              << ", rotate_expand: " << EXPANDEDSIZE << "\n";
-    entry* str_array;
-    entry_repr* repr_array;
 
     // Read to memory
     std::ifstream ifs(argv[1], std::ifstream::in);
-    if (ifs) {
-        // TODO: Count number of lines of the input file, HACK: use "wc -l"
+    const int INPUTSIZE = std::count(std::istreambuf_iterator<char>(ifs),
+                                     std::istreambuf_iterator<char>(), '\n');
+    ifs.seekg(0);  // rewind
+    const int EXPANDEDSIZE = 65 * INPUTSIZE;
+    std::cerr << "expected output size :: str_array: " << INPUTSIZE
+              << ", rotate_expand: " << EXPANDEDSIZE << "\n";
 
-        // Allocate array
-        str_array = new entry[INPUTSIZE];
-        repr_array = new entry_repr[EXPANDEDSIZE];
+    // Allocate array
+    entry* str_array = new entry[INPUTSIZE];
+    entry_repr* repr_array = new entry_repr[EXPANDEDSIZE];
 
-        // Read input
-        read_input(&ifs, str_array, INPUTSIZE);
-        ifs.close();
-    } else {
-        throw std::invalid_argument("Cannot open file");
-    }
+    // Read input
+    read_input(&ifs, str_array, INPUTSIZE);
+    ifs.close();
+
     std::cout << std::endl;
 
     /*std::cout << "read input" << std::endl;
@@ -127,6 +123,6 @@ int main(int argc, char** argv) {
     }*/
 
     // cleanup
-    delete str_array;
-    delete repr_array;
+    delete[] str_array;
+    delete[] repr_array;
 }
