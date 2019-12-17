@@ -222,15 +222,7 @@ int main(int argc, char *argv[]) {
 
     // ----Default implementation----
     // ----Time capture start----
-    struct timeval TimeValue_Start;
-    struct timeval TimeValue_Final;
-    struct timezone TimeZone_Start;
-    struct timezone TimeZone_Final;
-    long time_start, time_end;
-    double time_overhead_default, time_overhead_student;
-
-    gettimeofday(&TimeValue_Start, &TimeZone_Start);
-
+    auto TA_timer_start = std::chrono::high_resolution_clock::now();
     // Generate read-wise suffixes
     for (int i = 0; i < read_count; i++) {
         suffixes[i] = generateSuffixes(reads[i], read_length);
@@ -239,34 +231,43 @@ int main(int argc, char *argv[]) {
     // Calculate final FM-Index
     L_counts = makeFMIndex(suffixes, read_count, read_length, F_counts, L);
 
-    gettimeofday(&TimeValue_Final, &TimeZone_Final);
-    time_start = TimeValue_Start.tv_sec * 1000000 + TimeValue_Start.tv_usec;
-    time_end = TimeValue_Final.tv_sec * 1000000 + TimeValue_Final.tv_usec;
-    time_overhead_default = (time_end - time_start) / 1000000.0;
+    auto TA_timer_end = std::chrono::high_resolution_clock::now();
+    double TA_time_spent =
+        static_cast<double>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                TA_timer_end - TA_timer_start)
+                .count()) /
+        1000000;
     // ----Time capture end----
     //--------
 
     // ----Your implementations----
-    gettimeofday(&TimeValue_Final, &TimeZone_Final);
-    time_start = TimeValue_Start.tv_sec * 1000000 + TimeValue_Start.tv_usec;
+    auto student_timer_start = std::chrono::high_resolution_clock::now();
     // ----Call your functions here----
 
     // ----Call your functions here----
-    time_end = TimeValue_Final.tv_sec * 1000000 + TimeValue_Final.tv_usec;
-    time_overhead_student = (time_end - time_start) / 1000000.0;
+    auto student_timer_end = std::chrono::high_resolution_clock::now();
+    double student_time_spent =
+        static_cast<double>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                student_timer_end - student_timer_start)
+                .count()) /
+        1000000;
     // --------
 
     // ----For debug purpose only----
-    for (int i = 0; i < read_count * read_length; i++)
+    /*for (int i = 0; i < read_count * read_length; i++)
         std::cout << L[i] << "\t" << SA_Final[i][0] << "," << SA_Final[i][1]
                   << "\t" << L_counts[i][0] << "," << L_counts[i][1] << ","
                   << L_counts[i][2] << "," << L_counts[i][3] << std::endl;
+    */
     // --------
 
     // ----Correction check and speedup calculation----
-    float speedup = 0.0;
+    double speedup = 0.0;
+    std::cout << "spent time " << TA_time_spent << "\n";
     /*if (checker() == 1) {
-        speedup = time_overhead_default / time_overhead_student;
+        speedup = TA_time_spent / student_time_spent;
     }*/
     std::cout << "Speedup=" << speedup << std::endl;
     // --------
