@@ -54,6 +54,7 @@ int main(int argc, char** argv) {
 
     // Allocate array
     entry* str_array = new entry[INPUTSIZE];
+    entry_repr::origin = str_array;
     entry_repr* repr_array = new entry_repr[EXPANDEDSIZE];
     // allocate TA's array
     auto TA_str_array = new char[INPUTSIZE][65];
@@ -66,7 +67,7 @@ int main(int argc, char** argv) {
     int** student_SA_Final = nullptr;
     int** student_L_counts = nullptr;
     char* student_L = nullptr;
-    int student_F_counts[] = {0, 0, 0, 0};
+    int student_F_counts[4] = {0, 0, 0, 0};
 
     // Read input
     read_input(&ifs, str_array, TA_str_array, INPUTSIZE);
@@ -161,9 +162,9 @@ int main(int argc, char** argv) {
     std::cerr << "check sorting\n";
     sort::radix_sort(repr_array, EXPANDEDSIZE, frequency);
     std::cout << "post sorting" << std::endl;
-    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
+    for (int i = 0; i != EXPANDEDSIZE; ++i) {
         std::cout << repr_array[i] << std::endl;
-    }*/
+    }
 
     auto student_timer_end = std::chrono::high_resolution_clock::now();
     double student_time_spent =

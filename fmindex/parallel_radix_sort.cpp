@@ -27,11 +27,11 @@ void expand_rotation(entry* array, const int array_size,
      */
     std::future<void>* work = new std::future<void>[array_size];
     for (int str_idx = 0; str_idx != array_size; ++str_idx) {
-        work[str_idx] = std::async(
-            std::launch::async, [&array, &repr_array, str_idx]() -> void {
+        work[str_idx] =
+            std::async(std::launch::async, [&repr_array, str_idx]() -> void {
                 int repr_counter = str_idx * 65;
                 for (int str_shift = 0; str_shift != 65; ++str_shift) {
-                    repr_array[repr_counter].str_idx = &(array[str_idx]);
+                    repr_array[repr_counter].str_idx = str_idx;
                     repr_array[repr_counter].str_shift = str_shift;
                     ++repr_counter;
                 }
@@ -55,9 +55,10 @@ void count_frequency(entry_repr* repr_array, const int repr_array_size,
 
         // extract full string
         uint8_t tmp[65];
-        std::memcpy(tmp, repr.str_idx->data + repr.str_shift,
+        std::memcpy(tmp, (repr.origin + repr.str_idx)->data + repr.str_shift,
                     (65 - repr.str_shift) * sizeof(uint8_t));
-        std::memcpy(tmp + 65 - repr.str_shift, repr.str_idx->data,
+        std::memcpy(tmp + 65 - repr.str_shift,
+                    (repr.origin + repr.str_idx)->data,
                     (repr.str_shift) * sizeof(uint8_t));
 
         // partitioning pass
@@ -103,52 +104,54 @@ void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
     }
 
     // Partition (move)
+    // TODO: FIXME: switch back to single thread
     std::future<void>* work = new std::future<void>[repr_array_size];
     for (unsigned int repr_idx = 0; repr_idx != repr_array_size; ++repr_idx) {
-        work[repr_idx] = std::async(
-            std::launch::async,
-            [repr_array, repr_idx, &bucket_mutex, &bucket_ptrs]() -> void {
-                entry_repr repr = repr_array[repr_idx];
-                uint8_t tmp[5];
+        // work[repr_idx] = std::async(std::launch::async, [repr_array,
+        // repr_idx, &bucket_mutex, &bucket_ptrs]() -> void {
+        entry_repr repr = repr_array[repr_idx];
+        uint8_t tmp[5];
 
-                // extract substring and categorize into bucket
-                if (repr.str_shift + 5 > 65) {
-                    // cyclic combination
-                    std::memcpy(tmp, repr.str_idx->data + repr.str_shift,
-                                (65 - repr.str_shift) * sizeof(uint8_t));
-                    std::memcpy(tmp + 65 - repr.str_shift, repr.str_idx->data,
-                                (repr.str_shift + 5 - 65) * sizeof(uint8_t));
-                } else {
-                    // normal
-                    std::memcpy(tmp, repr.str_idx->data + repr.str_shift,
-                                5 * sizeof(uint8_t));
-                }
+        // extract substring and categorize into bucket
+        if (repr.str_shift + 5 > 65) {
+            // cyclic combination
+            std::memcpy(tmp,
+                        (repr.origin + repr.str_idx)->data + repr.str_shift,
+                        (65 - repr.str_shift) * sizeof(uint8_t));
+            std::memcpy(tmp + 65 - repr.str_shift,
+                        (repr.origin + repr.str_idx)->data,
+                        (repr.str_shift + 5 - 65) * sizeof(uint8_t));
+        } else {
+            // normal
+            std::memcpy(tmp,
+                        (repr.origin + repr.str_idx)->data + repr.str_shift,
+                        5 * sizeof(uint8_t));
+        }
 
-                unsigned int bucket_idx =
-                    static_cast<unsigned int>(tmp[0]) * 625 +
-                    static_cast<unsigned int>(tmp[1]) * 125 +
-                    static_cast<unsigned int>(tmp[2]) * 25 +
-                    static_cast<unsigned int>(tmp[3]) * 5 +
-                    static_cast<unsigned int>(tmp[4]);
+        unsigned int bucket_idx = static_cast<unsigned int>(tmp[0]) * 625 +
+                                  static_cast<unsigned int>(tmp[1]) * 125 +
+                                  static_cast<unsigned int>(tmp[2]) * 25 +
+                                  static_cast<unsigned int>(tmp[3]) * 5 +
+                                  static_cast<unsigned int>(tmp[4]);
 
-                // Critical section (mutual exclusion block)
-                {
-                    const std::lock_guard<std::mutex> scoped_bucket_lock(
-                        bucket_mutex[bucket_idx]);
+        // Critical section (mutual exclusion block)
+        {
+            const std::lock_guard<std::mutex> scoped_bucket_lock(
+                bucket_mutex[bucket_idx]);
 
-                    // sequential version
-                    // *bucket_ptrs[bucket_idx]++ = repr;
+            // sequential version
+            // *bucket_ptrs[bucket_idx]++ = repr;
 
-                    // atomic(X) fetch_add(O)
-                    entry_repr* obj = bucket_ptrs[bucket_idx];
-                    bucket_ptrs[bucket_idx] += 1;
-                    // do op
-                    *obj = repr;
-                }
-            });
+            // atomic(X) fetch_add(O)
+            entry_repr* obj = bucket_ptrs[bucket_idx];
+            bucket_ptrs[bucket_idx] += 1;
+            // do op
+            *obj = repr;
+        }
+        //});
     }
     for (unsigned int repr_idx = 0; repr_idx != repr_array_size; ++repr_idx) {
-        work[repr_idx].wait();
+        // work[repr_idx].wait();
     }
     delete[] work;
 
@@ -159,6 +162,7 @@ void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
 
 void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
                 unsigned int frequency[sort::RADIX_LEVELS][sort::RADIX_SIZE]) {
+    // TODO: FIXME: use 1 thread per partition-sort
     // temporary working area
     entry_repr* alt_array = new entry_repr[repr_array_size];
     entry_repr *from = repr_array,
@@ -190,51 +194,51 @@ void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
         std::future<void>* work = new std::future<void>[repr_array_size];
         for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
              ++repr_idx) {
-            work[repr_idx] = std::async(
-                std::launch::async,
-                [from, repr_idx, &bucket_mutex, &bucket_ptrs]() -> void {
-                    entry_repr repr = from[repr_idx];
-                    uint8_t tmp[4];
+            // work[repr_idx] = std::async(std::launch::async, [from, repr_idx,
+            // &bucket_mutex, &bucket_ptrs]() -> void {
+            entry_repr repr = from[repr_idx];
+            uint8_t tmp[4];
 
-                    // extract substring and categorize into bucket
-                    if (repr.str_shift + 4 > 65) {
-                        // cyclic combination
-                        std::memcpy(tmp, repr.str_idx->data + repr.str_shift,
-                                    (65 - repr.str_shift) * sizeof(uint8_t));
-                        std::memcpy(
-                            tmp + 65 - repr.str_shift, repr.str_idx->data,
+            // extract substring and categorize into bucket
+            if (repr.str_shift + 4 > 65) {
+                // cyclic combination
+                std::memcpy(tmp,
+                            (repr.origin + repr.str_idx)->data + repr.str_shift,
+                            (65 - repr.str_shift) * sizeof(uint8_t));
+                std::memcpy(tmp + 65 - repr.str_shift,
+                            (repr.origin + repr.str_idx)->data,
                             (repr.str_shift + 4 - 65) * sizeof(uint8_t));
-                    } else {
-                        // normal
-                        std::memcpy(tmp, repr.str_idx->data + repr.str_shift,
-                                    4 * sizeof(uint8_t));
-                    }
+            } else {
+                // normal
+                std::memcpy(tmp,
+                            (repr.origin + repr.str_idx)->data + repr.str_shift,
+                            4 * sizeof(uint8_t));
+            }
 
-                    unsigned int bucket_idx =
-                        static_cast<unsigned int>(tmp[0]) * 125 +
-                        static_cast<unsigned int>(tmp[1]) * 25 +
-                        static_cast<unsigned int>(tmp[2]) * 5 +
-                        static_cast<unsigned int>(tmp[3]);
-                    // Critical section (mutual exclusion block)
-                    {
-                        const std::lock_guard<std::mutex> scoped_bucket_lock(
-                            bucket_mutex[bucket_idx]);
+            unsigned int bucket_idx = static_cast<unsigned int>(tmp[0]) * 125 +
+                                      static_cast<unsigned int>(tmp[1]) * 25 +
+                                      static_cast<unsigned int>(tmp[2]) * 5 +
+                                      static_cast<unsigned int>(tmp[3]);
+            // Critical section (mutual exclusion block)
+            {
+                const std::lock_guard<std::mutex> scoped_bucket_lock(
+                    bucket_mutex[bucket_idx]);
 
-                        // sequential version
-                        //*bucket_ptrs[bucket_idx]++ = repr;
+                // sequential version
+                //*bucket_ptrs[bucket_idx]++ = repr;
 
-                        // atomic(X) fetch_add(O)
-                        entry_repr* obj = bucket_ptrs[bucket_idx];
-                        bucket_ptrs[bucket_idx] += 1;
-                        // do op
-                        *obj = repr;
-                    }
-                });  // FIXME: impl async dispatch
+                // atomic(X) fetch_add(O)
+                entry_repr* obj = bucket_ptrs[bucket_idx];
+                bucket_ptrs[bucket_idx] += 1;
+                // do op
+                *obj = repr;
+            }
+            //});  // FIXME: impl async dispatch
         }
 
         for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
              ++repr_idx) {
-            work[repr_idx].wait();
+            // work[repr_idx].wait();
         }
         delete[] work;
 

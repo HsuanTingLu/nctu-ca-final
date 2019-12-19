@@ -42,16 +42,17 @@ class entry_repr {
     friend std::ostream& operator<<(std::ostream& os, entry_repr& self);
 
    public:
-    explicit entry_repr();
-    entry_repr(entry* str_idx, uint8_t str_shift);
-    entry_repr(const entry_repr& other);             // copy constructor
-    entry_repr& operator=(const entry_repr& other);  // copy assignment
-    entry get_entry();
-    uint8_t* get_sub_entry(int str_idx, int8_t str_shift);
+    static entry* origin;
 
    public:
-    entry* str_idx;
-    uint8_t str_shift;
+    explicit entry_repr();
+    entry_repr(uint32_t str_idx, uint8_t str_shift);
+    entry_repr(const entry_repr& other);             // copy constructor
+    entry_repr& operator=(const entry_repr& other);  // copy assignment
+
+   public:
+    uint32_t str_idx : 24;
+    uint8_t str_shift : 8;
 };
 
 #endif
