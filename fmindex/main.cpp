@@ -125,11 +125,6 @@ int main(int argc, char** argv) {
     sort::count_frequency(repr_array, EXPANDEDSIZE, partition_freq, frequency);
     std::cerr << "post frequency counting\n";
 
-    // partition frequency sanity check
-    std::cerr << "partition frequency:\n";
-    int partition_frequency_sum = std::accumulate(
-        partition_freq, partition_freq + sort::PARTITION_SIZE, 0);
-    std::cerr << "(sum = " << partition_frequency_sum << ")\n";
     // sorting frequency sanity check
     std::cerr << "sort frequency:\n";
     for (unsigned int level = 0; level != sort::RADIX_LEVELS; ++level) {
