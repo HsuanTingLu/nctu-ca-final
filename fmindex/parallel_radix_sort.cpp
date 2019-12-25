@@ -123,7 +123,7 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
                *to = alt_array;  // alternation pointers
 
     for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
-        std::cerr << "---\npass: " << pass << " starts\n";
+        //std::cerr << "---\npass: " << pass << " starts\n";
         // Count entry histograms to deteremine bucket sizes beforehand
         unsigned int frequency[RADIX_SIZE] = {0U};
         unsigned int* bucket_key_label = new unsigned int[repr_array_size];
@@ -134,13 +134,12 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
         for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
              ++repr_idx) {
             // Extract partition bits
-            entry_repr repr = repr_array[repr_idx];
+            entry_repr repr = from[repr_idx];
             uint8_t* string = (repr.origin[repr.str_idx]).data;
             uint8_t partition_bits[4];
             //std::cerr << "\nstring: " << repr << "\n";
             unsigned int actual_shift =
-                static_cast<unsigned int>(repr.str_shift) + PARTITION_CHARS +
-                pass * 4;
+                static_cast<unsigned int>(repr.str_shift) + 64 - 3 - pass * 4;
             actual_shift %= 65;
             //std::cerr << "shift: " << actual_shift << "\n";
 
@@ -219,8 +218,7 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
             uint8_t* string = (repr.origin + repr.str_idx)->data;
             uint8_t partition_bits[4];
             unsigned int actual_shift =
-                static_cast<unsigned int>(repr.str_shift) + PARTITION_CHARS +
-                pass * 4;
+                static_cast<unsigned int>(repr.str_shift) + 64 - 3 - pass * 4;
             actual_shift %= 65;
 
             // extract substring and categorize into bucket
@@ -240,7 +238,7 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
                             string + actual_shift,
                             4 * sizeof(uint8_t));
             }
-            std::cerr << repr << "\n";
+            /*std::cerr << repr << "\n";
             std::cerr << PARTITION_CHARS + pass * 4 << " - " << PARTITION_CHARS + pass * 4 + 3 << "\n";
             std::cerr << RED("bits: ")
             << (unsigned int)(partition_bits[0])
@@ -251,7 +249,7 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
             << rchar(partition_bits[0])
             << " " << rchar(partition_bits[1])
             << " " << rchar(partition_bits[2])
-            << " " << rchar(partition_bits[3]) << "\n";
+            << " " << rchar(partition_bits[3]) << "\n";*/
             // clang-format on
 
             unsigned int bucket_idx =

@@ -115,7 +115,8 @@ int main(int argc, char** argv) {
         if (!(i % 65)) {
             std::cout << "< " << i / 65 << " >\n";
         }
-        std::cout << repr_array[i] << " " << (unsigned int)(repr_array[i].str_shift) << std::endl;
+        std::cout << repr_array[i] << " " << (unsigned
+    int)(repr_array[i].str_shift) << std::endl;
     }*/
 
     // Scan for distribution
@@ -126,7 +127,8 @@ int main(int argc, char** argv) {
     sort::partitioning(repr_array, EXPANDEDSIZE, partition_freq);
     std::cout << "post partitioning" << std::endl;
     /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        std::cout << repr_array[i] << " " << (unsigned int)(repr_array[i].str_shift) << std::endl;
+        std::cout << repr_array[i] << " " << (unsigned
+    int)(repr_array[i].str_shift) << std::endl;
     }*/
 
     // Sort
@@ -140,24 +142,20 @@ int main(int argc, char** argv) {
         std::cout << "Start sorting sub-section " << part
                   << ", size = " << subarray_size << std::endl;
 
-        // FIXME: sort_work[part] = std::async(std::launch::async,
-        // [subarray_head, subarray_size]() -> void {
-        sort::radix_sort(subarray_head, subarray_size);
-        
-        for (int i = 0; i != subarray_size; ++i) {
-            std::cout << subarray_head[i] << std::endl;
-        }
-        //});
+        sort_work[part] = std::async(
+            std::launch::async, [subarray_head, subarray_size]() -> void {
+                sort::radix_sort(subarray_head, subarray_size);
+            });
     }
     for (unsigned int part = 0; part != sort::PARTITION_SIZE; ++part) {
-        // FIXME: sort_work[part].wait();
+        sort_work[part].wait();
         // std::cout << "Finish sorting sub-section " << part << std::endl;
     }
 
     std::cout << "post sorting" << std::endl;
-    for (int i = 0; i != EXPANDEDSIZE; ++i) {
+    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
         std::cout << repr_array[i] << std::endl;
-    }
+    }*/
 
     auto student_timer_end = std::chrono::high_resolution_clock::now();
     double student_time_spent =

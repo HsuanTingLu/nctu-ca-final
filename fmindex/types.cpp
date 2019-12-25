@@ -117,12 +117,7 @@ std::ostream& operator<<(std::ostream& os, entry_repr& self) {
                 self.str_shift * sizeof(uint8_t));
 
     for (uint8_t i = 0; i != 65; ++i) {
-        if ((i-1)%4 == 0) os << "-";
-        if(tmp[i]==0) os << "\033[32m";
-        if(tmp[i]==2) os << "\033[35m";
-        if(tmp[i]==4) os << "\033[34m";
         os << utils::reverse_char(tmp[i]);
-        if(tmp[i]!=1) os << "\033[0m";
     }
     return os;
 }
