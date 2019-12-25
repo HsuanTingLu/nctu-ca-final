@@ -36,7 +36,9 @@ void rotateRead(char *read, char *rotatedRead, int length) {
 char **generateSuffixes(char *read, int length) {
     char **suffixes = static_cast<char **>(malloc(length * sizeof(char *)));
     suffixes[0] = static_cast<char *>(malloc(length * sizeof(char)));
-    for (int j = 0; j < length; j++) suffixes[0][j] = read[j];
+    for (int j = 0; j < length; j++) {
+        suffixes[0][j] = read[j];
+    }
     for (int i = 1; i < length; i++) {
         suffixes[i] = static_cast<char *>(malloc(length * sizeof(char)));
         rotateRead(suffixes[i - 1], suffixes[i], length);

@@ -19,10 +19,11 @@
 #include <chrono>
 #include <numeric>
 #include <algorithm>
+#include <future>
 
 #include "types.hpp"
 #include "parallel_radix_sort.hpp"
-#include "TA.hpp"
+// DEBUG: #include "TA.hpp"
 // clang-format on
 
 // TODO: pin memory
@@ -81,7 +82,7 @@ int main(int argc, char** argv) {
      *                                  *
      ************************************
      */
-    auto TA_timer_start = std::chrono::high_resolution_clock::now();
+    /*auto TA_timer_start = std::chrono::high_resolution_clock::now();
 
     if (std::stoi(argv[2])) {
         // FIXME: TA starts FM-index generation
@@ -93,7 +94,7 @@ int main(int argc, char** argv) {
     }
     auto TA_timer_end = std::chrono::high_resolution_clock::now();
     delete[] TA_str_array;
-    delete[] TA_suffixes;
+    delete[] TA_suffixes;*/
     /************************************
      *                                  *
      *   TA's code: TIME CAPTURE ENDS   *
@@ -102,64 +103,61 @@ int main(int argc, char** argv) {
      */
 
     auto student_timer_start = std::chrono::high_resolution_clock::now();
-    /*std::cout << "read input" << std::endl;
-    for (int i = 0; i != INPUTSIZE; ++i) {
+    std::cout << "read input" << std::endl;
+    /*for (int i = 0; i != INPUTSIZE; ++i) {
         std::cout << str_array[i] << std::endl;
     }
     std::cout << "\n";*/
 
-    sort::expand_rotation(str_array, INPUTSIZE, repr_array);
-    /*std::cout << "post expansion" << std::endl;
-    for (int i = 0; i != EXPANDEDSIZE; ++i) {
+    sort::expand_rotation(INPUTSIZE, repr_array);
+    std::cout << "post expansion" << std::endl;
+    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
         if (!(i % 65)) {
             std::cout << "< " << i / 65 << " >\n";
         }
-        std::cout << repr_array[i] << std::endl;
+        std::cout << repr_array[i] << " " << (unsigned int)(repr_array[i].str_shift) << std::endl;
     }*/
 
     // Scan for distribution
-    unsigned int partition_freq[sort::PARTITION_SIZE] = {};
-    unsigned int frequency[sort::RADIX_LEVELS][sort::RADIX_SIZE] = {};
-
-    std::cerr << "counting frequency\n";
-    sort::count_frequency(repr_array, EXPANDEDSIZE, partition_freq, frequency);
-    std::cerr << "post frequency counting\n";
-
-    // sorting frequency sanity check
-    std::cerr << "sort frequency:\n";
-    for (unsigned int level = 0; level != sort::RADIX_LEVELS; ++level) {
-        int sort_frequency_sum = std::accumulate(
-            frequency[level], frequency[level] + sort::RADIX_SIZE, 0);
-        std::cerr << "level " << level << ": sum = " << sort_frequency_sum
-                  << "\n";
-        if (sort_frequency_sum != EXPANDEDSIZE) {
-            throw std::logic_error("sorting pass frequency sum does not match");
-        }
-    }
-
-    /*for (int i = 0; i != sort::PARTITION_SIZE; ++i) {
-        std::cout << partition_freq[i] << " ";
-        if (!(i % 80) && i != 0) {
-            std::cout << "\n";
-        }
-    }
-    std::cout << "\n";*/
+    unsigned int partition_freq[sort::PARTITION_SIZE] = {0};
 
     // Partition
     std::cout << "do partition" << std::endl;
     sort::partitioning(repr_array, EXPANDEDSIZE, partition_freq);
     std::cout << "post partitioning" << std::endl;
     /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        std::cout << repr_array[i] << std::endl;
+        std::cout << repr_array[i] << " " << (unsigned int)(repr_array[i].str_shift) << std::endl;
     }*/
 
     // Sort
     std::cerr << "check sorting\n";
-    sort::radix_sort(repr_array, EXPANDEDSIZE, frequency);
-    std::cout << "post sorting" << std::endl;
-    for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        std::cout << repr_array[i] << std::endl;
+    std::future<void> sort_work[sort::PARTITION_SIZE];
+    for (unsigned int part = 0; part != sort::PARTITION_SIZE; ++part) {
+        entry_repr* subarray_head =
+            repr_array +
+            std::accumulate(partition_freq, partition_freq + part, 0);
+        unsigned int subarray_size = partition_freq[part];
+        std::cout << "Start sorting sub-section " << part
+                  << ", size = " << subarray_size << std::endl;
+
+        // FIXME: sort_work[part] = std::async(std::launch::async,
+        // [subarray_head, subarray_size]() -> void {
+        sort::radix_sort(subarray_head, subarray_size);
+        
+        for (int i = 0; i != subarray_size; ++i) {
+            std::cout << subarray_head[i] << std::endl;
+        }
+        //});
     }
+    for (unsigned int part = 0; part != sort::PARTITION_SIZE; ++part) {
+        // FIXME: sort_work[part].wait();
+        // std::cout << "Finish sorting sub-section " << part << std::endl;
+    }
+
+    std::cout << "post sorting" << std::endl;
+    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
+        std::cout << repr_array[i] << std::endl;
+    }*/
 
     auto student_timer_end = std::chrono::high_resolution_clock::now();
     double student_time_spent =
@@ -171,7 +169,7 @@ int main(int argc, char** argv) {
     std::cout << "spent: " << student_time_spent << "s" << std::endl;
 
     // Correctness check and speedup calculation
-    if (std::stoi(argv[2])) {
+    /*if (std::stoi(argv[2])) {
         double TA_time_spent =
             static_cast<double>(
                 std::chrono::duration_cast<std::chrono::microseconds>(
@@ -187,7 +185,7 @@ int main(int argc, char** argv) {
             speedup = TA_time_spent / student_time_spent;
         }
         std::cout << "Speedup=" << speedup << std::endl;
-    }
+    }*/
 
     // cleanup
     delete[] str_array;

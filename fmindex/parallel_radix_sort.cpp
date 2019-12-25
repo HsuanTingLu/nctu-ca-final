@@ -17,11 +17,14 @@
 
 #include "parallel_radix_sort.hpp"
 // clang-format on
+// DEBUG:
+#define RED(x) "\033[31m" x "\033[0m"
+#define GREEN(x) "\033[32m" x "\033[0m"
+#define YELLOW(x) "\033[33m" x "\033[0m"
 
 namespace sort {
 
-void expand_rotation(entry* array, const int array_size,
-                     entry_repr* repr_array) {
+void expand_rotation(const int array_size, entry_repr* repr_array) {
     /* Expands and creates the entire table of representations of
      * strings-to-be-sorted
      *
@@ -39,43 +42,12 @@ void expand_rotation(entry* array, const int array_size,
     }
 }  // namespace sort
 
-void count_frequency(entry_repr* repr_array, const int repr_array_size,
-                     unsigned int partition_freq[PARTITION_SIZE],
-                     unsigned int frequency[RADIX_LEVELS][RADIX_SIZE]) {
-    /* Counts the number of values that will fall into each bucket at each pass
-     * so that it can be sized appropriately, aka taking the histogram of the
-     * data
-     */
-    for (int repr_idx = 0; repr_idx != repr_array_size; ++repr_idx) {
-        entry_repr repr = repr_array[repr_idx];
-
-        // extract full string
-        uint8_t tmp[65];
-        std::memcpy(tmp, (repr.origin + repr.str_idx)->data + repr.str_shift,
-                    (65 - repr.str_shift) * sizeof(uint8_t));
-        std::memcpy(tmp + 65 - repr.str_shift,
-                    (repr.origin + repr.str_idx)->data,
-                    (repr.str_shift) * sizeof(uint8_t));
-
-        // radix pass
-        for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
-            unsigned int char_idx = 5 + pass * 4;
-            unsigned int freq_bucket_idx =
-                static_cast<unsigned int>(tmp[char_idx + 0]) * 125 +
-                static_cast<unsigned int>(tmp[char_idx + 1]) * 25 +
-                static_cast<unsigned int>(tmp[char_idx + 2]) * 5 +
-                static_cast<unsigned int>(tmp[char_idx + 3]);
-            frequency[pass][freq_bucket_idx] += 1;
-        }
-    }
-}  // namespace sort
-
 void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
                   unsigned int partition_freq[PARTITION_SIZE]) {
     // Count bucket-key histogram to determine bucket sizes beforehand
     // TODO: counting is highly parallel
-    uint32_t bucket_key_label[repr_array_size];
-    for (int repr_idx = 0; repr_idx != repr_array_size; ++repr_idx) {
+    uint32_t* bucket_key_label = new uint32_t[repr_array_size];
+    for (unsigned int repr_idx = 0; repr_idx != repr_array_size; ++repr_idx) {
         // Extract partition bits (aka first char of string after rotation)
         entry_repr repr = repr_array[repr_idx];
         uint8_t* string = (repr.origin + repr.str_idx)->data;
@@ -89,58 +61,130 @@ void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
     // temporary working area
     entry_repr* alt_array = new entry_repr[repr_array_size];
     //  Initialize bucket boundaries
-    entry_repr* bucket_ptrs[PARTITION_SIZE];
+    entry_repr* bucket_ptrs[PARTITION_SIZE];  // keeps track of bucket HEADs
     entry_repr* next = alt_array;
     for (unsigned int bucket_idx = 0; bucket_idx != PARTITION_SIZE;
          ++bucket_idx) {
         bucket_ptrs[bucket_idx] = next;
         next += partition_freq[bucket_idx];
     }
+    // DEBUG: sanity check
+    if (next != (alt_array + repr_array_size)) {
+        throw std::logic_error(
+            "partitioning:: final ptr should be exactly at the end of the "
+            "alt_array");
+    }
 
     // Partition (move)
-    std::future<void>* work = new std::future<void>[repr_array_size];
     for (unsigned int repr_idx = 0; repr_idx != repr_array_size; ++repr_idx) {
         // work[repr_idx] = std::async(std::launch::async, [repr_array,
         // repr_idx, &bucket_mutex]() -> void {
         // Extract substring and categorize into bucket
         entry_repr repr = repr_array[repr_idx];
         uint8_t* string = (repr.origin + repr.str_idx)->data;
-        uint8_t bucket_idx = string[repr.str_shift];
+        unsigned int bucket_idx = static_cast<unsigned int>(string[repr.str_shift]);
 
         *(bucket_ptrs[bucket_idx] + bucket_key_label[repr_idx]) = repr;
         //});
     }
-    for (unsigned int repr_idx = 0; repr_idx != repr_array_size; ++repr_idx) {
-        // work[repr_idx].wait();
-    }
-    delete[] work;
 
     // swap the entire repr array
     delete[] repr_array;
     repr_array = alt_array;
 }
 
-void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
-                unsigned int frequency[sort::RADIX_LEVELS][sort::RADIX_SIZE]) {
-    // TODO: FIXME: use 1 thread per partition-sort
-    // temporary working area
+void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
+    // alternate working area
     entry_repr* alt_array = new entry_repr[repr_array_size];
     entry_repr *from = repr_array,
                *to = alt_array;  // alternation pointers
 
     for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
-        std::cerr << "pass: " << pass << " starts\n";
-        // bucket boundaries in array
-        entry_repr* bucket_ptrs[RADIX_SIZE];
-        std::mutex bucket_mutex[RADIX_SIZE];
+        //std::cerr << "---\npass: " << pass << " starts\n";
+        // Count entry histograms to deteremine bucket sizes beforehand
+        unsigned int frequency[RADIX_SIZE] = {0U};
+        unsigned int* bucket_key_label = new unsigned int[repr_array_size];
+        for (unsigned int i = 0; i != repr_array_size; ++i) {  // init array
+            bucket_key_label[i] = 0U;
+        }
+        //std::cerr << "Creating data histogram\n";
+        for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
+             ++repr_idx) {
+            // Extract partition bits
+            entry_repr repr = repr_array[repr_idx];
+            uint8_t* string = (repr.origin[repr.str_idx]).data;
+            uint8_t partition_bits[4];
+            //std::cerr << "\nstring: " << repr << "\n";
+            unsigned int actual_shift =
+                static_cast<unsigned int>(repr.str_shift) + PARTITION_CHARS +
+                pass * 4;
+            // trying to do "actual_shift %= 64" but knowing its range lies
+            //  between 1 and 125
+            // DEBUG: sanity check
+            if (actual_shift > 125) {
+                throw std::logic_error("actual_shift out of range");
+            }
+            if (actual_shift > 64) {
+                actual_shift -= 64;
+            }
+            //std::cerr << "shift: " << actual_shift << "\n";
 
-        // initialize the bucket boundaries
-        entry_repr* next = to;
-        for (unsigned int i = 0; i != RADIX_SIZE; ++i) {
-            bucket_ptrs[i] = next;
-            next += frequency[pass][i];
+            // clang-format off
+            if ((actual_shift + 4) >= 65) {
+                // cyclic combination
+                //DEBUG: std::cerr << YELLOW("CPY: ") << "data+" << actual_shift << ", size " << (65 - actual_shift) << "\n";
+                //DEBUG: std::cerr << YELLOW("CPY: ") << "data+" << (65 - actual_shift) << ", size " << (4 - (65 - actual_shift)) << "\n";
+                std::memcpy(partition_bits,
+                            string + actual_shift,
+                            (65 - actual_shift) * sizeof(uint8_t));
+                std::memcpy(
+                    partition_bits + (65 - actual_shift),
+                    string,
+                    (4 - (65 - actual_shift)) * sizeof(uint8_t));
+            } else {
+                // normal
+                //DEBUG: std::cerr << YELLOW("CPY: ") << "data+" << actual_shift << ", size 4\n";
+                std::memcpy(partition_bits,
+                            string + actual_shift,
+                            4 * sizeof(uint8_t));
+            }
+            // clang-format on
+
+            /*DEBUG: std::cerr << "bits " << static_cast<unsigned
+               int>(partition_bits[0])
+                      << "," << static_cast<unsigned int>(partition_bits[1])
+                      << "," << static_cast<unsigned int>(partition_bits[2])
+                      << "," << static_cast<unsigned int>(partition_bits[3])
+                      << "\n";*/
+            unsigned int bucket_idx =
+                static_cast<unsigned int>(partition_bits[0]) * 125 +
+                static_cast<unsigned int>(partition_bits[1]) * 25 +
+                static_cast<unsigned int>(partition_bits[2]) * 5 +
+                static_cast<unsigned int>(partition_bits[3]);
+
+            // Log number of bucket key occurrence of each entry
+            bucket_key_label[repr_idx] = frequency[bucket_idx];
+            // Update bucket key frequency info
+            frequency[bucket_idx] += 1;
+
+            /*std::cerr << "\nbucket_idx " << bucket_idx << "\n";
+            std::cerr << RED("bucket_key_label ")
+                      << static_cast<unsigned int>(bucket_key_label[repr_idx])
+                      << "\n";
+            std::cerr << YELLOW("frequency ")
+                      << static_cast<unsigned int>(frequency[bucket_idx])
+                      << "\n";*/
         }
 
+        //std::cerr << "Init bucket boundaries\n";
+        // Initialize bucket boundaries
+        entry_repr* bucket_ptrs[RADIX_SIZE];
+        entry_repr* next = to;
+        for (unsigned int bucket_idx = 0; bucket_idx != RADIX_SIZE;
+             ++bucket_idx) {
+            bucket_ptrs[bucket_idx] = next;
+            next += frequency[bucket_idx];
+        }
         // DEBUG: sanity check
         if (next != (to + repr_array_size)) {
             std::cerr << "sanity failure on pass: " << pass << "\n";
@@ -150,70 +194,73 @@ void radix_sort(entry_repr*& repr_array, const unsigned int repr_array_size,
                 "alt_array");
         }
 
+        //std::cerr << GREEN("actually moving data\n");
         // actually moving data to buckets
-        std::future<void>* work = new std::future<void>[repr_array_size];
         for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
              ++repr_idx) {
             // work[repr_idx] = std::async(std::launch::async, [from, repr_idx,
             // &bucket_mutex, &bucket_ptrs]() -> void {
             entry_repr repr = from[repr_idx];
-            uint8_t tmp[4];
+            uint8_t* string = (repr.origin + repr.str_idx)->data;
+            uint8_t partition_bits[4];
+            unsigned int actual_shift =
+                static_cast<unsigned int>(repr.str_shift) + PARTITION_CHARS +
+                pass * 4;
+            // trying to do "actual_shift %= 64" but knowing its range lies
+            //  between 1 and 125
+            // DEBUG: sanity check
+            if (actual_shift > 125) {
+                throw std::logic_error("sorting: actual moving data: actual_shift out of range");
+            }
+            if (actual_shift > 64) {
+                actual_shift -= 64;
+            }
 
             // extract substring and categorize into bucket
-            if (repr.str_shift + 4 > 65) {
+            // clang-format off
+            if ((actual_shift + 4) >= 65) {
                 // cyclic combination
-                std::memcpy(tmp,
-                            (repr.origin + repr.str_idx)->data + repr.str_shift,
-                            (65 - repr.str_shift) * sizeof(uint8_t));
-                std::memcpy(tmp + 65 - repr.str_shift,
-                            (repr.origin + repr.str_idx)->data,
-                            (repr.str_shift + 4 - 65) * sizeof(uint8_t));
+                std::memcpy(partition_bits,
+                            string + actual_shift,
+                            (65 - actual_shift) * sizeof(uint8_t));
+                std::memcpy(
+                    partition_bits + (65 - actual_shift),
+                    string,
+                    (4 - (65 - actual_shift)) * sizeof(uint8_t));
             } else {
                 // normal
-                std::memcpy(tmp,
-                            (repr.origin + repr.str_idx)->data + repr.str_shift,
+                std::memcpy(partition_bits,
+                            string + actual_shift,
                             4 * sizeof(uint8_t));
             }
+            /*DEBUG: std::cerr << RED("bits: ")
+            << (unsigned int)(partition_bits[0])
+            << " " << (unsigned int)(partition_bits[1])
+            << " " << (unsigned int)(partition_bits[2])
+            << " " << (unsigned int)(partition_bits[3]) << "\n";*/
+            // clang-format on
 
-            unsigned int bucket_idx = static_cast<unsigned int>(tmp[0]) * 125 +
-                                      static_cast<unsigned int>(tmp[1]) * 25 +
-                                      static_cast<unsigned int>(tmp[2]) * 5 +
-                                      static_cast<unsigned int>(tmp[3]);
-            // Critical section (mutual exclusion block)
-            {
-                const std::lock_guard<std::mutex> scoped_bucket_lock(
-                    bucket_mutex[bucket_idx]);
+            unsigned int bucket_idx =
+                static_cast<unsigned int>(partition_bits[0]) * 125 +
+                static_cast<unsigned int>(partition_bits[1]) * 25 +
+                static_cast<unsigned int>(partition_bits[2]) * 5 +
+                static_cast<unsigned int>(partition_bits[3]);
 
-                // sequential version
-                //*bucket_ptrs[bucket_idx]++ = repr;
-
-                // atomic(X) fetch_add(O)
-                entry_repr* obj = bucket_ptrs[bucket_idx];
-                bucket_ptrs[bucket_idx] += 1;
-                // do op
-                *obj = repr;
-            }
-            //});  // FIXME: impl async dispatch
+            *(bucket_ptrs[bucket_idx] + bucket_key_label[repr_idx]) = repr;
+            //});
         }
-
-        for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
-             ++repr_idx) {
-            // work[repr_idx].wait();
-        }
-        delete[] work;
 
         // swap arrays (via pointers {from}/{to} swapping)
         entry_repr* ptr_swap_tmp = from;
         from = to;
         to = ptr_swap_tmp;
-        std::cerr << "pass: " << pass << " ends\n";
+        //std::cerr << "pass: " << pass << " ends\n";
     }
 
     // return the correct array if ${RADIX_LEVELS} is odd
     if (RADIX_LEVELS & 1) {
-        // swap the entire repr array
-        delete[] repr_array;
-        repr_array = alt_array;
+        std::memcpy(repr_array, alt_array, repr_array_size);
+        delete[] alt_array;
     } else {
         delete[] alt_array;
     }
