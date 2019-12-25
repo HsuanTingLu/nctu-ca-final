@@ -155,9 +155,9 @@ int main(int argc, char** argv) {
     }
 
     std::cout << "post sorting" << std::endl;
-    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
+    for (int i = 0; i != EXPANDEDSIZE; ++i) {
         std::cout << repr_array[i] << std::endl;
-    }*/
+    }
 
     auto student_timer_end = std::chrono::high_resolution_clock::now();
     double student_time_spent =

@@ -93,6 +93,29 @@ void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
     repr_array = alt_array;
 }
 
+// DEBUG:
+inline char rchar(uint8_t c) {  // reverse char
+    switch (c) {
+        case 0:
+            return '$';
+            break;
+        case 1:
+            return 'A';
+            break;
+        case 2:
+            return 'C';
+            break;
+        case 3:
+            return 'G';
+            break;
+        case 4:
+            return 'T';
+            break;
+        default:
+            throw std::domain_error("reverse_char: argument out of range");
+    }
+}
+
 void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
     // alternate working area
     entry_repr* alt_array = new entry_repr[repr_array_size];
@@ -100,7 +123,7 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
                *to = alt_array;  // alternation pointers
 
     for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
-        //std::cerr << "---\npass: " << pass << " starts\n";
+        std::cerr << "---\npass: " << pass << " starts\n";
         // Count entry histograms to deteremine bucket sizes beforehand
         unsigned int frequency[RADIX_SIZE] = {0U};
         unsigned int* bucket_key_label = new unsigned int[repr_array_size];
@@ -118,19 +141,11 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
             unsigned int actual_shift =
                 static_cast<unsigned int>(repr.str_shift) + PARTITION_CHARS +
                 pass * 4;
-            // trying to do "actual_shift %= 64" but knowing its range lies
-            //  between 1 and 125
-            // DEBUG: sanity check
-            if (actual_shift > 125) {
-                throw std::logic_error("actual_shift out of range");
-            }
-            if (actual_shift > 64) {
-                actual_shift -= 64;
-            }
+            actual_shift %= 65;
             //std::cerr << "shift: " << actual_shift << "\n";
 
             // clang-format off
-            if ((actual_shift + 4) >= 65) {
+            if ((actual_shift + 3) > 64) {
                 // cyclic combination
                 //DEBUG: std::cerr << YELLOW("CPY: ") << "data+" << actual_shift << ", size " << (65 - actual_shift) << "\n";
                 //DEBUG: std::cerr << YELLOW("CPY: ") << "data+" << (65 - actual_shift) << ", size " << (4 - (65 - actual_shift)) << "\n";
@@ -206,19 +221,11 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
             unsigned int actual_shift =
                 static_cast<unsigned int>(repr.str_shift) + PARTITION_CHARS +
                 pass * 4;
-            // trying to do "actual_shift %= 64" but knowing its range lies
-            //  between 1 and 125
-            // DEBUG: sanity check
-            if (actual_shift > 125) {
-                throw std::logic_error("sorting: actual moving data: actual_shift out of range");
-            }
-            if (actual_shift > 64) {
-                actual_shift -= 64;
-            }
+            actual_shift %= 65;
 
             // extract substring and categorize into bucket
             // clang-format off
-            if ((actual_shift + 4) >= 65) {
+            if ((actual_shift + 3) > 64) {
                 // cyclic combination
                 std::memcpy(partition_bits,
                             string + actual_shift,
@@ -233,11 +240,18 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
                             string + actual_shift,
                             4 * sizeof(uint8_t));
             }
-            /*DEBUG: std::cerr << RED("bits: ")
+            std::cerr << repr << "\n";
+            std::cerr << PARTITION_CHARS + pass * 4 << " - " << PARTITION_CHARS + pass * 4 + 3 << "\n";
+            std::cerr << RED("bits: ")
             << (unsigned int)(partition_bits[0])
             << " " << (unsigned int)(partition_bits[1])
             << " " << (unsigned int)(partition_bits[2])
-            << " " << (unsigned int)(partition_bits[3]) << "\n";*/
+            << " " << (unsigned int)(partition_bits[3]) << "\n";
+            std::cerr << YELLOW("char: ")
+            << rchar(partition_bits[0])
+            << " " << rchar(partition_bits[1])
+            << " " << rchar(partition_bits[2])
+            << " " << rchar(partition_bits[3]) << "\n";
             // clang-format on
 
             unsigned int bucket_idx =
