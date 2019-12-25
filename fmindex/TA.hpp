@@ -3,25 +3,43 @@
 
 // clang-format off
 #include <cstdlib>
+
+#include <iostream>
 // clang-format on
 
 // Check correctness of values
+int SA_type[1][2];
+int Lcnt_type[1][4];
 int checker(int read_count, int read_length, char *L_student,
-            int **SA_Final_student, int **L_counts_student,
-            int *F_counts_student, char *L, int **SA_Final, int **L_counts,
-            int *F_counts) {
+            decltype(SA_type) SA_Final_student,
+            decltype(Lcnt_type) L_counts_student, int *F_counts_student,
+            char *L, int **SA_Final, int **L_counts, int *F_counts) {
     int correct = 1;
     for (int i = 0; i < read_count * read_length; i++) {
-        if (L_student[i] != L[i]) correct = 0;
+        if (L_student[i] != L[i]) {
+            correct = 0;
+            std::cerr << "L wrong, ans=" << L[i] << ", given=" << L_student[i]
+                      << "\n";
+        }
         for (int j = 0; j < 2; j++) {
-            if (SA_Final_student[i][j] != SA_Final[i][j]) correct = 0;
+            if (SA_Final_student[i][j] != SA_Final[i][j]) {
+                correct = 0;
+                std::cerr << "SA wrong, ans=" << SA_Final[i][j] << ", given=" << SA_Final_student[i][j] << "\n";
+            }
         }
         for (int j = 0; j < 4; j++) {
-            if (L_counts_student[i][j] != L_counts[i][j]) correct = 0;
+            if (L_counts_student[i][j] != L_counts[i][j]) {
+                correct = 0;
+                std::cerr << "L_count wrong, " << i << ", " << j << ", ans=" << L_counts[i][j] << ", given=" << L_counts_student[i][j] << "\n";
+            }
         }
     }
     for (int i = 0; i < 4; i++) {
-        if (F_counts_student[i] != F_counts[i]) correct = 0;
+        if (F_counts_student[i] != F_counts[i]) {
+            correct = 0;
+            std::cerr << "F wrong, ans=" << F_counts[i]
+                      << ", given=" << F_counts_student[i] << "\n";
+        }
     }
     return correct;
 }

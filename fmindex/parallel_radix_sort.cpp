@@ -93,29 +93,6 @@ void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
     repr_array = alt_array;
 }
 
-// DEBUG:
-inline char rchar(uint8_t c) {  // reverse char
-    switch (c) {
-        case 0:
-            return '$';
-            break;
-        case 1:
-            return 'A';
-            break;
-        case 2:
-            return 'C';
-            break;
-        case 3:
-            return 'G';
-            break;
-        case 4:
-            return 'T';
-            break;
-        default:
-            throw std::domain_error("reverse_char: argument out of range");
-    }
-}
-
 void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
     // alternate working area
     entry_repr* alt_array = new entry_repr[repr_array_size];

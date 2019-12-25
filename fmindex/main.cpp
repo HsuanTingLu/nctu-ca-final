@@ -23,7 +23,7 @@
 
 #include "types.hpp"
 #include "parallel_radix_sort.hpp"
-// DEBUG: #include "TA.hpp"
+#include "TA.hpp"
 // clang-format on
 
 // TODO: pin memory
@@ -65,10 +65,21 @@ int main(int argc, char** argv) {
     int** TA_SA_Final = nullptr;
     int** TA_L_counts = nullptr;
     // TA's structures for correctness check
-    int** student_SA_Final = nullptr;
-    int** student_L_counts = nullptr;
-    char* student_L = nullptr;
+    auto student_SA_Final = new int[EXPANDEDSIZE][2];
+    auto student_L_counts = new int[EXPANDEDSIZE][4];
+    char* student_L = new char[EXPANDEDSIZE];
     int student_F_counts[4] = {0, 0, 0, 0};
+    // Init TA's structures
+    for(int i=0; i!=EXPANDEDSIZE; ++i) {
+        auto SA = student_SA_Final[i];
+        SA[0] = 0;
+        SA[1] = 0;
+        auto L_count = student_L_counts[i];
+        L_count[0] = 0;
+        L_count[1] = 0;
+        L_count[2] = 0;
+        L_count[3] = 0;
+    }
 
     // Read input
     read_input(&ifs, str_array, TA_str_array, INPUTSIZE);
@@ -82,9 +93,10 @@ int main(int argc, char** argv) {
      *                                  *
      ************************************
      */
-    /*auto TA_timer_start = std::chrono::high_resolution_clock::now();
+    auto TA_timer_start = std::chrono::high_resolution_clock::now();
 
     if (std::stoi(argv[2])) {
+        std::cerr << "Measure TA time\n";
         // FIXME: TA starts FM-index generation
         for (int i = 0; i != INPUTSIZE; ++i) {
             TA_suffixes[i] = generateSuffixes(TA_str_array[i], 65);
@@ -94,7 +106,7 @@ int main(int argc, char** argv) {
     }
     auto TA_timer_end = std::chrono::high_resolution_clock::now();
     delete[] TA_str_array;
-    delete[] TA_suffixes;*/
+    delete[] TA_suffixes;
     /************************************
      *                                  *
      *   TA's code: TIME CAPTURE ENDS   *
@@ -149,13 +161,36 @@ int main(int argc, char** argv) {
     }
     for (unsigned int part = 0; part != sort::PARTITION_SIZE; ++part) {
         sort_work[part].wait();
-        // std::cout << "Finish sorting sub-section " << part << std::endl;
+        std::cout << "Finish sorting sub-section " << part << std::endl;
     }
 
     std::cout << "post sorting" << std::endl;
     /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
         std::cout << repr_array[i] << std::endl;
     }*/
+
+    // FIXME: Fulfill TA's specifications
+    for(int i=0; i!=4; ++i) {
+        student_F_counts[i] = partition_freq[i];
+    }
+    for(int i=0; i!=EXPANDEDSIZE; ++i) {
+        entry_repr repr = repr_array[i];
+        uint8_t* string = (repr.origin[repr.str_idx]).data;
+        uint8_t L = string[(repr.str_shift+64)%65];
+        student_L[i] = utils::reverse_char(L);
+        student_SA_Final[i][0] = repr.str_shift;
+        student_SA_Final[i][1] = repr.str_idx;
+
+        if (i != 0) {
+            student_L_counts[i][0] = student_L_counts[i-1][0];
+            student_L_counts[i][1] = student_L_counts[i-1][1];
+            student_L_counts[i][2] = student_L_counts[i-1][2];
+            student_L_counts[i][3] = student_L_counts[i-1][3];
+        }
+        if (static_cast<unsigned int>(L) != 0) {
+            student_L_counts[i][static_cast<unsigned int>(L)-1] += 1;
+        }
+    }
 
     auto student_timer_end = std::chrono::high_resolution_clock::now();
     double student_time_spent =
@@ -167,7 +202,7 @@ int main(int argc, char** argv) {
     std::cout << "spent: " << student_time_spent << "s" << std::endl;
 
     // Correctness check and speedup calculation
-    /*if (std::stoi(argv[2])) {
+    if (std::stoi(argv[2])) {
         double TA_time_spent =
             static_cast<double>(
                 std::chrono::duration_cast<std::chrono::microseconds>(
@@ -182,8 +217,9 @@ int main(int argc, char** argv) {
                     TA_L_counts, TA_F_counts) == 1) {
             speedup = TA_time_spent / student_time_spent;
         }
+        //speedup = TA_time_spent / student_time_spent; // DEBUG:
         std::cout << "Speedup=" << speedup << std::endl;
-    }*/
+    }
 
     // cleanup
     delete[] str_array;

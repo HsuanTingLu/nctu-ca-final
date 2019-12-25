@@ -9,7 +9,7 @@
 
 namespace utils {
 
-inline uint8_t char_hash(char c) {
+uint8_t char_hash(char c) {
     // maps ACGT$
     switch (c) {
         case '$':
@@ -32,7 +32,7 @@ inline uint8_t char_hash(char c) {
     }
 }
 
-inline char reverse_char(uint8_t c) {
+char reverse_char(uint8_t c) {
     switch (c) {
         case 0:
             return '$';
