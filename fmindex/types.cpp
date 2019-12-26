@@ -9,7 +9,7 @@
 
 namespace utils {
 
-inline uint8_t char_hash(char c) {
+uint8_t char_hash(char c) {
     // maps ACGT$
     switch (c) {
         case '$':
@@ -32,7 +32,7 @@ inline uint8_t char_hash(char c) {
     }
 }
 
-inline char reverse_char(uint8_t c) {
+char reverse_char(uint8_t c) {
     switch (c) {
         case 0:
             return '$';
@@ -84,10 +84,12 @@ std::ostream& operator<<(std::ostream& os, entry& self) {
 }
 
 // entry_repr
-entry_repr::entry_repr(entry* str_idx, uint8_t str_shift)
+entry* entry_repr::origin;
+
+entry_repr::entry_repr(uint32_t str_idx, uint8_t str_shift)
     : str_idx(str_idx), str_shift(str_shift) {}
 
-entry_repr::entry_repr() : str_idx(nullptr), str_shift(0) {}
+entry_repr::entry_repr() : str_idx(0), str_shift(0) {}
 
 entry_repr::entry_repr(const entry_repr& other) {
     this->str_idx = other.str_idx;
@@ -108,10 +110,10 @@ std::ostream& operator<<(std::ostream& os, entry_repr& self) {
     // Cycle shift: amount=self.str_shift
     uint8_t tmp[65];
     // left section
-    std::memcpy(tmp, self.str_idx->data + self.str_shift,
+    std::memcpy(tmp, (self.origin + self.str_idx)->data + self.str_shift,
                 (65 - self.str_shift) * sizeof(uint8_t));
     // right section
-    std::memcpy(tmp + 65 - self.str_shift, self.str_idx->data,
+    std::memcpy(tmp + 65 - self.str_shift, (self.origin + self.str_idx)->data,
                 self.str_shift * sizeof(uint8_t));
 
     for (uint8_t i = 0; i != 65; ++i) {
