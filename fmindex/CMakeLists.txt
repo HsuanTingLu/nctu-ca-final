@@ -18,9 +18,9 @@ target_sources(fmindex
         $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,parallel>,parallel_radix_sort.cpp,>
         # gpu, cuda
         $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,gpu_radix_sort.hpp,>
-        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,radix_sort.cpp,>
-        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,radix_sort.cuh,>
-        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,radix_sort.cu,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,gpu_radix_sort.cpp,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,gpu_radix_sort.cuh,>
+        $<IF:$<STREQUAL:$<LOWER_CASE:${SORT}>,gpu>,gpu_radix_sort.cu,>
 )
 
 
