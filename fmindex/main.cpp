@@ -27,14 +27,14 @@
 // clang-format on
 
 // TODO: pin memory
-void read_input(std::ifstream* ifs, entry* array, char (*TA_array)[65],
+void read_input(std::ifstream* ifs, entry* array, char (*TA_array)[64],
                 const int INPUTSIZE) {
-    char buffer[65];
-    buffer[64] = '$';
+    char buffer[64];
+    buffer[63] = '$';
     for (int str_idx = 0; str_idx != INPUTSIZE; ++str_idx) {
-        ifs->read(buffer, 64);
+        ifs->read(buffer, 63);
         ifs->ignore();
-        std::memcpy(TA_array[str_idx], buffer, 65);
+        std::memcpy(TA_array[str_idx], buffer, 64);
         array[str_idx] = entry(buffer);
     }
 }
@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
     const int INPUTSIZE = std::count(std::istreambuf_iterator<char>(ifs),
                                      std::istreambuf_iterator<char>(), '\n');
     ifs.seekg(0);  // rewind
-    const int EXPANDEDSIZE = 65 * INPUTSIZE;
+    const int EXPANDEDSIZE = 64 * INPUTSIZE;
     std::cerr << "expected output size :: str_array: " << INPUTSIZE
               << ", rotate_expand: " << EXPANDEDSIZE << "\n";
 
@@ -124,8 +124,8 @@ int main(int argc, char** argv) {
     sort::expand_rotation(INPUTSIZE, repr_array);
     std::cout << "post expansion" << std::endl;
     /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        if (!(i % 65)) {
-            std::cout << "< " << i / 65 << " >\n";
+        if (!(i % 64)) {
+            std::cout << "< " << i / 64 << " >\n";
         }
         std::cout << repr_array[i] << " " << (unsigned
     int)(repr_array[i].str_shift) << std::endl;
@@ -154,13 +154,13 @@ int main(int argc, char** argv) {
         std::cout << "Start sorting sub-section " << part
                   << ", size = " << subarray_size << std::endl;
 
-        sort_work[part] = std::async(
-            std::launch::async, [subarray_head, subarray_size]() -> void {
+        //sort_work[part] = std::async(
+            //std::launch::async, [subarray_head, subarray_size]() -> void {
                 sort::radix_sort(subarray_head, subarray_size);
-            });
+            //});
     }
     for (unsigned int part = 0; part != sort::PARTITION_SIZE; ++part) {
-        sort_work[part].wait();
+        //sort_work[part].wait();
         std::cout << "Finish sorting sub-section " << part << std::endl;
     }
 

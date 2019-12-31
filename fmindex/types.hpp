@@ -32,7 +32,7 @@ class entry {
     entry& operator=(const entry& other);
 
    public:
-    uint8_t data[65];
+    uint8_t data[64];
 };
 
 class entry_repr {

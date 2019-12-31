@@ -4,7 +4,7 @@ from random import randrange
 
 EXPECTARGC = 2
 alphabet = ['A', 'C', 'G', 'T']
-read_length = 64
+read_length = 63
 
 try:
     assert (len(sys.argv) == EXPECTARGC + 1)

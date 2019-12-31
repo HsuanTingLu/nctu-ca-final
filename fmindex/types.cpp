@@ -61,7 +61,7 @@ entry::entry() {
 }
 
 entry::entry(const char* string) {
-    for (int char_idx = 0; char_idx != 65; ++char_idx) {
+    for (int char_idx = 0; char_idx != 64; ++char_idx) {
         this->data[char_idx] = utils::char_hash(string[char_idx]);
     }
 }
@@ -71,13 +71,13 @@ entry& entry::operator=(const entry& other) {
         return *this;
     }
     // Reuse storage
-    std::memcpy(this->data, other.data, sizeof(uint8_t) * 65);
+    std::memcpy(this->data, other.data, sizeof(uint8_t) * 64);
     return *this;
 }
 
 std::ostream& operator<<(std::ostream& os, entry& self) {
     // pruned output (with only 1 $)
-    for (int i = 0; i != 65; ++i) {
+    for (int i = 0; i != 64; ++i) {
         os << utils::reverse_char(self.data[i]);
     }
     return os;
@@ -108,15 +108,16 @@ entry_repr& entry_repr::operator=(const entry_repr& other) {
 
 std::ostream& operator<<(std::ostream& os, entry_repr& self) {
     // Cycle shift: amount=self.str_shift
-    uint8_t tmp[65];
+    uint8_t tmp[64];
+    uint8_t* string = (self.origin[self.str_idx]).data;
     // left section
-    std::memcpy(tmp, (self.origin + self.str_idx)->data + self.str_shift,
-                (65 - self.str_shift) * sizeof(uint8_t));
+    std::memcpy(tmp, string + self.str_shift,
+                (64 - self.str_shift) * sizeof(uint8_t));
     // right section
-    std::memcpy(tmp + 65 - self.str_shift, (self.origin + self.str_idx)->data,
+    std::memcpy(tmp + 64 - self.str_shift, string,
                 self.str_shift * sizeof(uint8_t));
 
-    for (uint8_t i = 0; i != 65; ++i) {
+    for (uint8_t i = 0; i != 64; ++i) {
         os << utils::reverse_char(tmp[i]);
     }
     return os;

@@ -33,8 +33,8 @@ void expand_rotation(const int array_size, entry_repr* repr_array) {
      */
     for (int str_idx = 0; str_idx != array_size; ++str_idx) {
         // Splitted one loop into two in case of needing parallelisation
-        int repr_counter = str_idx * 65;
-        for (int str_shift = 0; str_shift != 65; ++str_shift) {
+        int repr_counter = str_idx * 64;
+        for (int str_shift = 0; str_shift != 64; ++str_shift) {
             repr_array[repr_counter].str_idx = str_idx;
             repr_array[repr_counter].str_shift = str_shift;
             ++repr_counter;
@@ -77,15 +77,12 @@ void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
 
     // Partition (move)
     for (unsigned int repr_idx = 0; repr_idx != repr_array_size; ++repr_idx) {
-        // work[repr_idx] = std::async(std::launch::async, [repr_array,
-        // repr_idx, &bucket_mutex]() -> void {
         // Extract substring and categorize into bucket
         entry_repr repr = repr_array[repr_idx];
         uint8_t* string = (repr.origin + repr.str_idx)->data;
         unsigned int bucket_idx = static_cast<unsigned int>(string[repr.str_shift]);
 
         *(bucket_ptrs[bucket_idx] + bucket_key_label[repr_idx]) = repr;
-        //});
     }
 
     // swap the entire repr array
@@ -100,58 +97,68 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
                *to = alt_array;  // alternation pointers
 
     for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
-        //std::cerr << "---\npass: " << pass << " starts\n";
+        //std::cerr << GREEN("---\npass: ") << pass << " starts\n";
         // Count entry histograms to deteremine bucket sizes beforehand
+        // :: init arrays
         unsigned int frequency[RADIX_SIZE] = {0U};
         unsigned int* bucket_key_label = new unsigned int[repr_array_size];
-        for (unsigned int i = 0; i != repr_array_size; ++i) {  // init array
+        for (unsigned int i = 0; i != repr_array_size; ++i) {
             bucket_key_label[i] = 0U;
         }
+
         //std::cerr << "Creating data histogram\n";
         for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
              ++repr_idx) {
             // Extract partition bits
             entry_repr repr = from[repr_idx];
-            uint8_t* string = (repr.origin[repr.str_idx]).data;
-            uint8_t partition_bits[4];
+            uint8_t* string = (repr.origin[static_cast<unsigned int>(repr.str_idx)]).data;
+            uint8_t partition_bits[8];
             //std::cerr << "\nstring: " << repr << "\n";
             unsigned int actual_shift =
-                static_cast<unsigned int>(repr.str_shift) + 64 - 3 - pass * 4;
-            actual_shift %= 65;
-            //std::cerr << "shift: " << actual_shift << "\n";
+                static_cast<unsigned int>(repr.str_shift) + 64 - 8 - pass * 8;
+            actual_shift %= 64;
+            //std::cerr << RED("shift: ") << static_cast<unsigned int>(repr.str_shift) << ", actual: " << actual_shift << "\n";
 
             // clang-format off
-            if ((actual_shift + 3) > 64) {
+            if ((actual_shift + 7) > 63) {
                 // cyclic combination
-                //DEBUG: std::cerr << YELLOW("CPY: ") << "data+" << actual_shift << ", size " << (65 - actual_shift) << "\n";
-                //DEBUG: std::cerr << YELLOW("CPY: ") << "data+" << (65 - actual_shift) << ", size " << (4 - (65 - actual_shift)) << "\n";
+                //DEBUG: std::cerr << YELLOW("CPY: ") << "data+" << actual_shift << ", size " << (64 - actual_shift) << "\n";
+                //DEBUG: std::cerr << YELLOW("CPY: ") << "data+" << (64 - actual_shift) << ", size " << (4 - (64 - actual_shift)) << "\n";
                 std::memcpy(partition_bits,
                             string + actual_shift,
-                            (65 - actual_shift) * sizeof(uint8_t));
+                            (64 - actual_shift) * sizeof(uint8_t));
                 std::memcpy(
-                    partition_bits + (65 - actual_shift),
+                    partition_bits + (64 - actual_shift),
                     string,
-                    (4 - (65 - actual_shift)) * sizeof(uint8_t));
+                    (8 - (64 - actual_shift)) * sizeof(uint8_t));
             } else {
                 // normal
                 //DEBUG: std::cerr << YELLOW("CPY: ") << "data+" << actual_shift << ", size 4\n";
                 std::memcpy(partition_bits,
                             string + actual_shift,
-                            4 * sizeof(uint8_t));
+                            8 * sizeof(uint8_t));
             }
             // clang-format on
 
-            /*DEBUG: std::cerr << "bits " << static_cast<unsigned
+            /*std::cerr << "bits " << static_cast<unsigned
                int>(partition_bits[0])
                       << "," << static_cast<unsigned int>(partition_bits[1])
                       << "," << static_cast<unsigned int>(partition_bits[2])
                       << "," << static_cast<unsigned int>(partition_bits[3])
+                      << "," << static_cast<unsigned int>(partition_bits[4])
+                      << "," << static_cast<unsigned int>(partition_bits[5])
+                      << "," << static_cast<unsigned int>(partition_bits[6])
+                      << "," << static_cast<unsigned int>(partition_bits[7])
                       << "\n";*/
             unsigned int bucket_idx =
-                static_cast<unsigned int>(partition_bits[0]) * 125 +
-                static_cast<unsigned int>(partition_bits[1]) * 25 +
-                static_cast<unsigned int>(partition_bits[2]) * 5 +
-                static_cast<unsigned int>(partition_bits[3]);
+                static_cast<unsigned int>(partition_bits[0]) * 78125 +
+                static_cast<unsigned int>(partition_bits[1]) * 15625 +
+                static_cast<unsigned int>(partition_bits[2]) * 3125 +
+                static_cast<unsigned int>(partition_bits[3]) * 625 +
+                static_cast<unsigned int>(partition_bits[4]) * 125 +
+                static_cast<unsigned int>(partition_bits[5]) * 25 +
+                static_cast<unsigned int>(partition_bits[6]) * 5 +
+                static_cast<unsigned int>(partition_bits[7]);
 
             // Log number of bucket key occurrence of each entry
             bucket_key_label[repr_idx] = frequency[bucket_idx];
@@ -192,28 +199,28 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
             // work[repr_idx] = std::async(std::launch::async, [from, repr_idx,
             // &bucket_mutex, &bucket_ptrs]() -> void {
             entry_repr repr = from[repr_idx];
-            uint8_t* string = (repr.origin + repr.str_idx)->data;
-            uint8_t partition_bits[4];
+            uint8_t* string = (repr.origin[static_cast<unsigned int>(repr.str_idx)]).data;
+            uint8_t partition_bits[8];
             unsigned int actual_shift =
-                static_cast<unsigned int>(repr.str_shift) + 64 - 3 - pass * 4;
-            actual_shift %= 65;
+                static_cast<unsigned int>(repr.str_shift) + 64 - 8 - pass * 8;
+            actual_shift %= 64;
 
             // extract substring and categorize into bucket
             // clang-format off
-            if ((actual_shift + 3) > 64) {
+            if ((actual_shift + 7) > 63) {
                 // cyclic combination
                 std::memcpy(partition_bits,
                             string + actual_shift,
-                            (65 - actual_shift) * sizeof(uint8_t));
+                            (64 - actual_shift) * sizeof(uint8_t));
                 std::memcpy(
-                    partition_bits + (65 - actual_shift),
+                    partition_bits + (64 - actual_shift),
                     string,
-                    (4 - (65 - actual_shift)) * sizeof(uint8_t));
+                    (8 - (64 - actual_shift)) * sizeof(uint8_t));
             } else {
                 // normal
                 std::memcpy(partition_bits,
                             string + actual_shift,
-                            4 * sizeof(uint8_t));
+                            8 * sizeof(uint8_t));
             }
             /*std::cerr << repr << "\n";
             std::cerr << PARTITION_CHARS + pass * 4 << " - " << PARTITION_CHARS + pass * 4 + 3 << "\n";
@@ -230,10 +237,14 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
             // clang-format on
 
             unsigned int bucket_idx =
-                static_cast<unsigned int>(partition_bits[0]) * 125 +
-                static_cast<unsigned int>(partition_bits[1]) * 25 +
-                static_cast<unsigned int>(partition_bits[2]) * 5 +
-                static_cast<unsigned int>(partition_bits[3]);
+                static_cast<unsigned int>(partition_bits[0]) * 78125 +
+                static_cast<unsigned int>(partition_bits[1]) * 15625 +
+                static_cast<unsigned int>(partition_bits[2]) * 3125 +
+                static_cast<unsigned int>(partition_bits[3]) * 625 +
+                static_cast<unsigned int>(partition_bits[4]) * 125 +
+                static_cast<unsigned int>(partition_bits[5]) * 25 +
+                static_cast<unsigned int>(partition_bits[6]) * 5 +
+                static_cast<unsigned int>(partition_bits[7]);
 
             *(bucket_ptrs[bucket_idx] + bucket_key_label[repr_idx]) = repr;
             //});
