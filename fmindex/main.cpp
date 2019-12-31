@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
     entry_repr::origin = str_array;
     entry_repr* repr_array = new entry_repr[EXPANDEDSIZE];
     // allocate TA's array
-    auto TA_str_array = new char[INPUTSIZE][65];
+    auto TA_str_array = new char[INPUTSIZE][64];
     auto TA_suffixes = new char**[INPUTSIZE];  // expanded string array
     auto TA_L = new char[EXPANDEDSIZE];
     auto TA_F_counts = new int[4]{0, 0, 0, 0};
@@ -99,9 +99,9 @@ int main(int argc, char** argv) {
         std::cerr << "Measure TA time\n";
         // FIXME: TA starts FM-index generation
         for (int i = 0; i != INPUTSIZE; ++i) {
-            TA_suffixes[i] = generateSuffixes(TA_str_array[i], 65);
+            TA_suffixes[i] = generateSuffixes(TA_str_array[i], 64);
         }
-        TA_L_counts = makeFMIndex(TA_suffixes, INPUTSIZE, 65, TA_F_counts, TA_L,
+        TA_L_counts = makeFMIndex(TA_suffixes, INPUTSIZE, 64, TA_F_counts, TA_L,
                                   TA_SA_Final);
     }
     auto TA_timer_end = std::chrono::high_resolution_clock::now();
@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
     // Sort
     std::cerr << "check sorting\n";
     std::future<void> sort_work[sort::PARTITION_SIZE];
-    for (unsigned int part = 0; part != sort::PARTITION_SIZE; ++part) {
+    /*for (unsigned int part = 0; part != sort::PARTITION_SIZE; ++part) {
         entry_repr* subarray_head =
             repr_array +
             std::accumulate(partition_freq, partition_freq + part, 0);
@@ -154,11 +154,12 @@ int main(int argc, char** argv) {
         std::cout << "Start sorting sub-section " << part
                   << ", size = " << subarray_size << std::endl;
 
-        //sort_work[part] = std::async(
-            //std::launch::async, [subarray_head, subarray_size]() -> void {
+        sort_work[part] = std::async(
+            std::launch::async, [subarray_head, subarray_size]() -> void {
                 sort::radix_sort(subarray_head, subarray_size);
-            //});
-    }
+            });
+    }*/
+    sort::radix_sort(repr_array, EXPANDEDSIZE);
     for (unsigned int part = 0; part != sort::PARTITION_SIZE; ++part) {
         //sort_work[part].wait();
         std::cout << "Finish sorting sub-section " << part << std::endl;
@@ -176,7 +177,7 @@ int main(int argc, char** argv) {
     for(int i=0; i!=EXPANDEDSIZE; ++i) {
         entry_repr repr = repr_array[i];
         uint8_t* string = (repr.origin[repr.str_idx]).data;
-        uint8_t L = string[(repr.str_shift+64)%65];
+        uint8_t L = string[(repr.str_shift+63)%64];
         student_L[i] = utils::reverse_char(L);
         student_SA_Final[i][0] = repr.str_shift;
         student_SA_Final[i][1] = repr.str_idx;
@@ -212,7 +213,7 @@ int main(int argc, char** argv) {
         std::cout << "TA code spent: " << TA_time_spent << " s" << std::endl;
 
         double speedup = 0.0;
-        if (checker(INPUTSIZE, 65, student_L, student_SA_Final,
+        if (checker(INPUTSIZE, 64, student_L, student_SA_Final,
                     student_L_counts, student_F_counts, TA_L, TA_SA_Final,
                     TA_L_counts, TA_F_counts) == 1) {
             speedup = TA_time_spent / student_time_spent;
