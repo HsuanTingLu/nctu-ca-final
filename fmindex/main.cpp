@@ -54,6 +54,7 @@ int main(int argc, char** argv) {
               << ", rotate_expand: " << EXPANDEDSIZE << "\n";
 
     // Allocate array
+    // TODO: also do cuda-version pinned host malloc
     entry* str_array = new entry[INPUTSIZE];
     entry_repr::origin = str_array;
     entry_repr* repr_array = new entry_repr[EXPANDEDSIZE];
@@ -134,14 +135,15 @@ int main(int argc, char** argv) {
         std::cout << "Start sorting sub-section " << part
                   << ", shift = " << section_shift
                   << ", size = " << subarray_size << std::endl;
-        sort_work[part] = std::async(
-            std::launch::async, [subarray_head, subarray_size]() -> void {
-                sort::radix_sort(subarray_head, subarray_size);
-            });
+        // sort_work[part] = std::async(
+        // std::launch::async, [subarray_head, subarray_size]() -> void {
+        sort::radix_sort(subarray_head, subarray_size);
+        //});
+        // sort_work[part].wait();
     }
     // sort::radix_sort(repr_array, EXPANDEDSIZE);
     for (unsigned int part = 0; part != sort::PARTITION_SIZE; ++part) {
-        sort_work[part].wait();
+        // sort_work[part].wait();
         std::cout << "Finish sorting sub-section " << part << std::endl;
     }
 
@@ -179,7 +181,6 @@ int main(int argc, char** argv) {
                     student_4b_sorted_suffixes) == 1) {
             speedup = TA_time_spent / student_time_spent;
         }
-        // speedup = TA_time_spent / student_time_spent; // DEBUG:
         std::cout << "Speedup=" << speedup << std::endl;
     }
 

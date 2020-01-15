@@ -14,7 +14,7 @@
 // clang-format on
 
 namespace sort {
-// 8 char, 8 Bytes, 8 dna chars, 5^8 = 78125
+// 8 char, 8 Bytes, 8 dna chars, 5^8 = 390625
 constexpr const unsigned int RADIX_SIZE = 390625;
 // 64-char = preliminary 1-char and (overlapped) 8 levels * 8 char
 constexpr const unsigned int RADIX_LEVELS = 8;

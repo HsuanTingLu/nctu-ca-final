@@ -40,7 +40,7 @@ void expand_rotation(const int array_size, entry_repr* repr_array) {
             ++repr_counter;
         }
     }
-}  // namespace sort
+}
 
 void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
                   unsigned int partition_freq[PARTITION_SIZE]) {
@@ -96,39 +96,39 @@ void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
 
 void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
     // alternate working area
-    std::cerr << "\nENTER\n\n";
-    entry_repr* alt_array = new entry_repr[repr_array_size];
+    std::cerr << "\nENTER\noriginal array (pre-sort):\n";
+    for(unsigned int i=0; i!=repr_array_size; ++i) {
+        std::cerr << i << ", " << repr_array[i] << "\n";
+    }
+    entry_repr *alt_array = new entry_repr[repr_array_size];
     entry_repr *from = repr_array,
                *to = alt_array;  // alternation pointers
 
+    unsigned int *bucket_indexes = new unsigned int[repr_array_size];
     unsigned int frequency[RADIX_SIZE];
     unsigned int* bucket_key_label = new unsigned int[repr_array_size];
 
     for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
-        // std::cerr << GREEN("---\npass: ") << pass << " starts\n";
+        std::cerr << GREEN("---\npass: ") << pass << " starts\n";
         // Count entry histograms to deteremine bucket sizes beforehand
 
         // init arrays
         for (unsigned int i = 0U; i != RADIX_SIZE; ++i) {
             frequency[i] = 0U;
         }
-        for (unsigned int i = 0U; i != repr_array_size; ++i) {
-            bucket_key_label[i] = 0U;
-        }
-
         // std::cerr << "Creating data histogram\n";
         for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
              ++repr_idx) {
             // Extract partition bits
+#ifdef jalin
             entry_repr repr = from[repr_idx];
             uint8_t* string = (repr.origin[repr.str_idx]).data;
             uint8_t partition_bits[8];
-            // std::cerr << "\nstring: " << repr << "\n";
+            std::cerr << "\nrepr_idx: " << repr_idx << ", string: " << repr << "\n";
             unsigned int actual_shift =
                 static_cast<unsigned int>(repr.str_shift) + 64 - 8 - pass * 8;
             actual_shift %= 64;
-            // std::cerr << RED("shift: ") << static_cast<unsigned
-            // int>(repr.str_shift) << ", actual: " << actual_shift << "\n";
+            std::cerr << RED("shift: ") << static_cast<unsigned int>(repr.str_shift) << ", actual: " << actual_shift << "\n";
 
             // clang-format off
             if ((actual_shift + 7) > 63) {
@@ -170,12 +170,14 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
                 static_cast<unsigned int>(partition_bits[5]) * 25 +
                 static_cast<unsigned int>(partition_bits[6]) * 5 +
                 static_cast<unsigned int>(partition_bits[7]);
-
+#endif
+#ifdef jalin
             // Log number of bucket key occurrence of each entry
             bucket_key_label[repr_idx] = frequency[bucket_idx];
+
             // Update bucket key frequency info
             frequency[bucket_idx] += 1;
-
+#endif
             /*std::cerr << "\nbucket_idx " << bucket_idx << "\n";
             std::cerr << RED("bucket_key_label ")
                       << static_cast<unsigned int>(bucket_key_label[repr_idx])
@@ -187,6 +189,7 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
 
         // std::cerr << "Init bucket boundaries\n";
         // Initialize bucket boundaries
+#ifdef jalin
         entry_repr* bucket_ptrs[RADIX_SIZE];
         entry_repr* next = to;
         for (unsigned int bucket_idx = 0; bucket_idx != RADIX_SIZE;
@@ -194,6 +197,8 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
             bucket_ptrs[bucket_idx] = next;
             next += frequency[bucket_idx];
         }
+#endif
+#ifdef jalin
         // DEBUG: sanity check
         if (next != (to + repr_array_size)) {
             std::cerr << "sanity failure on pass: " << pass << "\n";
@@ -202,13 +207,14 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
                 "the "
                 "alt_array");
         }
-
+#endif
         // std::cerr << GREEN("actually moving data\n");
         // actually moving data to buckets
         for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
              ++repr_idx) {
             // work[repr_idx] = std::async(std::launch::async, [from, repr_idx,
             // &bucket_mutex, &bucket_ptrs]() -> void {
+#ifdef jalin
             entry_repr repr = from[repr_idx];
             uint8_t* string = (repr.origin[repr.str_idx]).data;
             uint8_t partition_bits[8];
@@ -256,11 +262,12 @@ void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
                 static_cast<unsigned int>(partition_bits[5]) * 25 +
                 static_cast<unsigned int>(partition_bits[6]) * 5 +
                 static_cast<unsigned int>(partition_bits[7]);
-
+#endif
+#ifdef jalin
             *(bucket_ptrs[bucket_idx] + bucket_key_label[repr_idx]) = repr;
             //});
+#endif
         }
-
         // swap arrays (via pointers {from}/{to} swapping)
         entry_repr* ptr_swap_tmp = from;
         from = to;
