@@ -8,66 +8,47 @@
 // clang-format on
 
 // Check correctness of values
-int SA_type[1][2];
-int Lcnt_type[1][4];
-int checker(int read_count, int read_length, char *L_student,
-            decltype(SA_type) SA_Final_student,
-            decltype(Lcnt_type) L_counts_student, int *F_counts_student,
-            char *L, int **SA_Final, int **L_counts, int *F_counts) {
+int checker(int read_count, char **fourbit_sorted_suffixes_original,
+            char **fourbit_sorted_suffixes_student) {
     int correct = 1;
-    for (int i = 0; i < read_count * read_length; i++) {
-        if (L_student[i] != L[i]) {
-            correct = 0;
-            std::cerr << "L wrong, ans=" << L[i] << ", given=" << L_student[i]
-                      << "\n";
-        }
-        for (int j = 0; j < 2; j++) {
-            if (SA_Final_student[i][j] != SA_Final[i][j]) {
+    for (int i = 0; i < read_count * 64; i++) {
+        for (int j = 0; j < 64 / 2; j++) {
+            if (fourbit_sorted_suffixes_student[i][j] !=
+                fourbit_sorted_suffixes_original[i][j])
                 correct = 0;
-                std::cerr << "SA wrong, ans=" << SA_Final[i][j] << ", given=" << SA_Final_student[i][j] << "\n";
-            }
-        }
-        for (int j = 0; j < 4; j++) {
-            if (L_counts_student[i][j] != L_counts[i][j]) {
-                correct = 0;
-                std::cerr << "L_count wrong, " << i << ", " << j << ", ans=" << L_counts[i][j] << ", given=" << L_counts_student[i][j] << "\n";
-            }
-        }
-    }
-    for (int i = 0; i < 4; i++) {
-        if (F_counts_student[i] != F_counts[i]) {
-            correct = 0;
-            std::cerr << "F wrong, ans=" << F_counts[i]
-                      << ", given=" << F_counts_student[i] << "\n";
         }
     }
     return correct;
 }
 
-// Rotate read by 1 character
-void rotateRead(char *read, char *rotatedRead, int length) {
-    for (int i = 0; i < length - 1; i++) rotatedRead[i] = read[i + 1];
-    rotatedRead[length - 1] = read[0];
+// Rotate 4-bit encoded read by 1 character (4-bit)
+char *rotateRead(char *read, int byte_length) {
+    char prev_4bit = (read[0] & 0x0F) << 4;
+    read[0] = (read[0] >> 4) & 0x0F;
+    for (int i = 1; i < byte_length; i++) {
+        char this_char = ((read[i] >> 4) & 0x0F) | prev_4bit;
+        prev_4bit = (read[i] & 0x0F) << 4;
+        read[i] = this_char;
+    }
+    read[0] = read[0] | prev_4bit;
+    char *rotated_read = (char *)malloc(byte_length * sizeof(char));
+    for (int i = 0; i < byte_length; i++) rotated_read[i] = read[i];
+    return rotated_read;
 }
 
-// Generate Sufixes and their SA's for a read
-char **generateSuffixes(char *read, int length) {
-    char **suffixes = static_cast<char **>(malloc(length * sizeof(char *)));
-    suffixes[0] = static_cast<char *>(malloc(length * sizeof(char)));
-    for (int j = 0; j < length; j++) {
-        suffixes[0][j] = read[j];
-    }
-    for (int i = 1; i < length; i++) {
-        suffixes[i] = static_cast<char *>(malloc(length * sizeof(char)));
-        rotateRead(suffixes[i - 1], suffixes[i], length);
+// Generate Sufixes for a 4-bit encoded read
+char **generateSuffixes(char *read, int byte_length) {
+    char **suffixes = (char **)malloc(byte_length * 2 * sizeof(char *));
+    for (int i = 0; i < byte_length * 2; i++) {
+        suffixes[i] = rotateRead(read, byte_length);
     }
     return suffixes;
 }
 
-// Comparator for Suffixes
-int compSuffixes(char *suffix1, char *suffix2, int length) {
+// Comparator for 4-bit encoded Suffixes
+int compSuffixes(char *suffix1, char *suffix2, int byte_length) {
     int ret = 0;
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < byte_length; i++) {
         if (suffix1[i] > suffix2[i])
             return 1;
         else if (suffix1[i] < suffix2[i])
@@ -76,105 +57,69 @@ int compSuffixes(char *suffix1, char *suffix2, int length) {
     return ret;
 }
 
-// Calculates the final FM-Index
-int **makeFMIndex(char ***suffixes, int read_count, int read_length,
-                  int F_count[], char *L, int **&SA_Final) {
-    int i, j;
-
-    SA_Final =
-        static_cast<int **>(malloc(read_count * read_length * sizeof(int *)));
-    for (i = 0; i < read_count * read_length; i++) {
-        SA_Final[i] = static_cast<int *>(malloc(2 * sizeof(int)));
+char *fourbitEncodeRead(char *read, int length) {
+    int byte_length = length / 2;
+    char *fourbit_read = (char *)calloc(byte_length, sizeof(char));
+    for (int i = 0; i < length; i++) {
+        char this_char = read[i];
+        char fourbit_char;
+        if (this_char == '$')
+            fourbit_char = 0x00;
+        else if (this_char == 'A')
+            fourbit_char = 0x01;
+        else if (this_char == 'C')
+            fourbit_char = 0x02;
+        else if (this_char == 'G')
+            fourbit_char = 0x03;
+        else
+            fourbit_char = 0x04;
+        fourbit_char = i % 2 == 0 ? fourbit_char << 4 : fourbit_char;
+        fourbit_read[i / 2] = fourbit_read[i / 2] | fourbit_char;
     }
+    return fourbit_read;
+}
 
-    // Temporary storage for collecting together all suffixes
-    char **temp_suffixes =
-        static_cast<char **>(malloc(read_count * read_length * sizeof(char *)));
-
-    // Initalization of temporary storage
-    for (i = 0; i < read_count; i++) {
-        for (j = 0; j < read_length; j++) {
-            temp_suffixes[i * read_length + j] =
-                static_cast<char *>(malloc(read_length * sizeof(char)));
-            std::memcpy(&temp_suffixes[i * read_length + j], &suffixes[i][j],
-                        read_length * sizeof(char));
-            SA_Final[i * read_length + j][0] = j;
-            SA_Final[i * read_length + j][1] = i;
-        }
-    }
-
-    char *temp = static_cast<char *>(malloc(read_length * sizeof(char)));
-
-    int **L_count =
-        static_cast<int **>(malloc(read_length * read_count * sizeof(int *)));
-    for (i = 0; i < read_length * read_count; i++) {
-        L_count[i] = static_cast<int *>(malloc(4 * sizeof(int)));
-        for (j = 0; j < 4; j++) {
-            L_count[i][j] = 0;
-        }
-    }
-
-    // Focus on improving this for evaluation purpose
-    // Sorting of suffixes
-    for (i = 0; i < read_count * read_length - 1; i++) {
-        for (j = 0; j < read_count * read_length - i - 1; j++) {
-            if (compSuffixes(temp_suffixes[j], temp_suffixes[j + 1],
-                             read_length) > 0) {
-                std::memcpy(temp, temp_suffixes[j], read_length * sizeof(char));
-                std::memcpy(temp_suffixes[j], temp_suffixes[j + 1],
-                            read_length * sizeof(char));
-                std::memcpy(temp_suffixes[j + 1], temp,
-                            read_length * sizeof(char));
-                int temp_int = SA_Final[j][0];
-                SA_Final[j][0] = SA_Final[j + 1][0];
-                SA_Final[j + 1][0] = temp_int;
-                temp_int = SA_Final[j][1];
-                SA_Final[j][1] = SA_Final[j + 1][1];
-                SA_Final[j + 1][1] = temp_int;
+void sort_fourbit_suffixes(char **suffixes, int suffix_count, int byte_length) {
+    char *temp = (char *)malloc(byte_length * sizeof(char));
+    for (int i = 0; i < suffix_count - 1; i++) {
+        for (int j = 0; j < suffix_count - i - 1; j++) {
+            if (compSuffixes(suffixes[j], suffixes[j + 1], byte_length) > 0) {
+                memcpy(temp, suffixes[j], byte_length * sizeof(char));
+                memcpy(suffixes[j], suffixes[j + 1],
+                       byte_length * sizeof(char));
+                memcpy(suffixes[j + 1], temp, byte_length * sizeof(char));
             }
         }
     }
-
-    delete[] temp;
-    char this_F = '$';
-    j = 0;
-
-    // Calculation of F_count's
-    for (i = 0; i < read_count * read_length; i++) {
-        int count = 0;
-        while (temp_suffixes[i][0] == this_F) {
-            count++;
-            i++;
-        }
-        if (j) {
-            F_count[j] = count + 1;
-        } else {
-            F_count[j] = count;
-        }
-        j += 1;
-
-        this_F = temp_suffixes[i][0];
-        if (temp_suffixes[i][0] == 'T') break;
-    }
-
-    // Calculation of L's and L_count's
-    for (i = 0; i < read_count * read_length; i++) {
-        char ch = temp_suffixes[i][read_length - 1];
-        L[i] = ch;
-        if (i > 0) {
-            for (int k = 0; k < 4; k++) L_count[i][k] = L_count[i - 1][k];
-        }
-        if (ch == 'A')
-            L_count[i][0]++;
-        else if (ch == 'C')
-            L_count[i][1]++;
-        else if (ch == 'G')
-            L_count[i][2]++;
-        else if (ch == 'T')
-            L_count[i][3]++;
-    }
-
-    return L_count;
 }
+
+// Default Pipeline. You need to implement CUDA function corresponding to
+// everything inside this function
+void pipeline(char (*reads)[64], int read_length, int read_count,
+              char **fourbit_sorted_suffixes_original) {
+    fourbit_sorted_suffixes_original =
+        (char **)malloc(read_length * read_count * sizeof(char *));
+    for (int i = 0; i < read_count; i++) {
+        char **suffixes_for_read = generateSuffixes(
+            fourbitEncodeRead(reads[i], read_length), read_length / 2);
+        sort_fourbit_suffixes(suffixes_for_read, read_length, read_length / 2);
+        for (int j = 0; j < read_length; j++) {
+            fourbit_sorted_suffixes_original[i * read_length + j] =
+                suffixes_for_read[j];
+        }
+    }
+    //--------------For debug purpose--------------
+    /*
+    for(int i=0;i<read_count*read_length;i++){
+        for(int j=0;j<read_length/2;j++)
+            printf("%x\t",fourbit_sorted_suffixes_original[i][j]);
+        printf("\n");
+    }*/
+    //---------------------------------------------
+}
+
+// Merge all sorted suffixes in overall sorted order
+void mergeAllSorted4bitSuffixes(char **suffixes, int read_count,
+                                int read_length) {}
 
 #endif

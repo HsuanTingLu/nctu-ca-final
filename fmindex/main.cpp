@@ -58,33 +58,17 @@ int main(int argc, char** argv) {
     entry_repr::origin = str_array;
     entry_repr* repr_array = new entry_repr[EXPANDEDSIZE];
     // allocate TA's array
-    auto TA_str_array = new char[INPUTSIZE][64];
-    auto TA_suffixes = new char**[INPUTSIZE];  // expanded string array
-    auto TA_L = new char[EXPANDEDSIZE];
-    int TA_F_counts[4] = {0, 0, 0, 0};
-    int** TA_SA_Final = nullptr;
-    int** TA_L_counts = nullptr;
+    char(*TA_str_array)[64] = new char[INPUTSIZE][64];
+    char** TA_4b_sorted_suffixes =
+        new char*[INPUTSIZE];  // expanded string array
     // TA's structures for correctness check
-    auto student_SA_Final = new int[EXPANDEDSIZE][2];
-    auto student_L_counts = new int[EXPANDEDSIZE][4];
-    char* student_L = new char[EXPANDEDSIZE];
-    int student_F_counts[4] = {0, 0, 0, 0};
+    char** student_4b_sorted_suffixes = new char*[INPUTSIZE];
     // Init TA's structures
-    for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        auto SA = student_SA_Final[i];
-        SA[0] = 0;
-        SA[1] = 0;
-        auto L_count = student_L_counts[i];
-        L_count[0] = 0;
-        L_count[1] = 0;
-        L_count[2] = 0;
-        L_count[3] = 0;
-    }
+    // TODO: what to do?
 
     // Read input
     read_input(&ifs, str_array, TA_str_array, INPUTSIZE);
     ifs.close();
-
     std::cout << std::endl;
 
     /************************************
@@ -97,16 +81,12 @@ int main(int argc, char** argv) {
 
     if (std::stoi(argv[2])) {
         std::cerr << "Measure TA time\n";
-        // FIXME: TA starts FM-index generation
-        for (int i = 0; i != INPUTSIZE; ++i) {
-            TA_suffixes[i] = generateSuffixes(TA_str_array[i], 64);
-        }
-        TA_L_counts = makeFMIndex(TA_suffixes, INPUTSIZE, 64, TA_F_counts, TA_L,
-                                  TA_SA_Final);
+        pipeline(TA_str_array, 64, INPUTSIZE, TA_4b_sorted_suffixes);
+        mergeAllSorted4bitSuffixes(TA_4b_sorted_suffixes, INPUTSIZE, 64);
     }
     auto TA_timer_end = std::chrono::high_resolution_clock::now();
     delete[] TA_str_array;
-    delete[] TA_suffixes;
+    delete[] TA_4b_sorted_suffixes;
     /************************************
      *                                  *
      *   TA's code: TIME CAPTURE ENDS   *
@@ -170,27 +150,9 @@ int main(int argc, char** argv) {
         std::cout << repr_array[i] << std::endl;
     }
 
-    // FIXME: Fulfill TA's specifications
-    for (int i = 0; i != 4; ++i) {
-        student_F_counts[i] = partition_freq[i];
-    }
-    for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        entry_repr repr = repr_array[i];
-        uint8_t* string = (repr.origin[repr.str_idx]).data;
-        uint8_t L = string[(repr.str_shift + 63) % 64];
-        student_L[i] = utils::reverse_char(L);
-        student_SA_Final[i][0] = repr.str_shift;
-        student_SA_Final[i][1] = repr.str_idx;
-
-        if (i != 0) {
-            student_L_counts[i][0] = student_L_counts[i - 1][0];
-            student_L_counts[i][1] = student_L_counts[i - 1][1];
-            student_L_counts[i][2] = student_L_counts[i - 1][2];
-            student_L_counts[i][3] = student_L_counts[i - 1][3];
-        }
-        if (static_cast<unsigned int>(L) != 0) {
-            student_L_counts[i][static_cast<unsigned int>(L) - 1] += 1;
-        }
+    // FIXME: Fulfill TA's specifications: expand and encode
+    for (unsigned int repr_idx = 0; repr_idx != EXPANDEDSIZE; ++repr_idx) {
+        // TODO: expand and encode
     }
 
     auto student_timer_end = std::chrono::high_resolution_clock::now();
@@ -213,9 +175,8 @@ int main(int argc, char** argv) {
         std::cout << "TA code spent: " << TA_time_spent << " s" << std::endl;
 
         double speedup = 0.0;
-        if (checker(INPUTSIZE, 64, student_L, student_SA_Final,
-                    student_L_counts, student_F_counts, TA_L, TA_SA_Final,
-                    TA_L_counts, TA_F_counts) == 1) {
+        if (checker(INPUTSIZE, TA_4b_sorted_suffixes,
+                    student_4b_sorted_suffixes) == 1) {
             speedup = TA_time_spent / student_time_spent;
         }
         // speedup = TA_time_spent / student_time_spent; // DEBUG:
