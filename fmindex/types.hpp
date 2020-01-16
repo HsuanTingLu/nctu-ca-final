@@ -14,8 +14,9 @@
 
 namespace utils {
 
-uint8_t char_hash(char c);
-char reverse_char(uint8_t c);
+__host__ __device__ uint8_t char_hash(char c);
+__host__ __device__ char reverse_char(uint8_t c);
+__host__ __device__ unsigned int four_bit_encode(char c);
 
 }  // namespace utils
 
@@ -27,12 +28,13 @@ class entry {
     friend std::ostream& operator<<(std::ostream& os, entry& self);
 
    public:
-    explicit entry();
-    explicit entry(const char* string);
-    entry& operator=(const entry& other);
+    // TODO: re-implement explicit constructors
+    __host__ __device__ entry();
+    __host__ __device__ entry(const char* string);
+    __host__ __device__ entry& operator=(const entry& other);
 
    public:
-    uint8_t data[65];
+    uint8_t data[64];
 };
 
 class entry_repr {
@@ -45,10 +47,13 @@ class entry_repr {
     static entry* origin;
 
    public:
-    explicit entry_repr();
-    entry_repr(uint32_t str_idx, uint8_t str_shift);
-    entry_repr(const entry_repr& other);             // copy constructor
-    entry_repr& operator=(const entry_repr& other);  // copy assignment
+    // TODO: re-implement explicit constructors
+    __host__ __device__ entry_repr();
+    __host__ __device__ entry_repr(uint32_t str_idx, uint8_t str_shift);
+    __host__ __device__
+    entry_repr(const entry_repr& other);  // copy constructor
+    __host__ __device__ entry_repr& operator=(
+        const entry_repr& other);  // copy assignment
 
    public:
     uint32_t str_idx : 24;
