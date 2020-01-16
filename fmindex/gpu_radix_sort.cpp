@@ -33,8 +33,8 @@ void expand_rotation(const int array_size, entry_repr* repr_array) {
      */
     for (int str_idx = 0; str_idx != array_size; ++str_idx) {
         // Splitted one loop into two in case of needing parallelisation
-        int repr_counter = str_idx * 65;
-        for (int str_shift = 0; str_shift != 65; ++str_shift) {
+        int repr_counter = str_idx * 64;
+        for (int str_shift = 0; str_shift != 64; ++str_shift) {
             repr_array[repr_counter].str_idx = str_idx;
             repr_array[repr_counter].str_shift = str_shift;
             ++repr_counter;
@@ -42,217 +42,126 @@ void expand_rotation(const int array_size, entry_repr* repr_array) {
     }
 }  // namespace sort
 
-void partitioning(entry_repr*& repr_array, const unsigned int repr_array_size,
-                  unsigned int partition_freq[PARTITION_SIZE]) {
-    // Count bucket-key histogram to determine bucket sizes beforehand
-    // TODO: counting is highly parallel
-    uint32_t* bucket_key_label = new uint32_t[repr_array_size];
-    for (unsigned int repr_idx = 0; repr_idx != repr_array_size; ++repr_idx) {
-        // Extract partition bits (aka first char of string after rotation)
-        entry_repr repr = repr_array[repr_idx];
-        uint8_t* string = (repr.origin + repr.str_idx)->data;
-        uint8_t bucket_idx = string[repr.str_shift];
-        // Log number of bucket key occurrence of each entry
-        bucket_key_label[repr_idx] = partition_freq[bucket_idx];
-        // Update bucket key frequency info
-        partition_freq[bucket_idx] += 1;
-    }
+void radix_sort(entry_repr* repr_array, const unsigned int entry_array_size) {
+    const unsigned int repr_array_size = entry_array_size * 64;
+    // Set CUDA kernel launch configurations
+    constexpr const int threadsPerBlock = 1024;
+    const int blocksPerGrid =
+        (repr_array_size + threadsPerBlock - 1) / threadsPerBlock;
 
-    // temporary working area
-    entry_repr* alt_array = new entry_repr[repr_array_size];
-    //  Initialize bucket boundaries
-    entry_repr* bucket_ptrs[PARTITION_SIZE];  // keeps track of bucket HEADs
-    entry_repr* next = alt_array;
-    for (unsigned int bucket_idx = 0; bucket_idx != PARTITION_SIZE;
-         ++bucket_idx) {
-        bucket_ptrs[bucket_idx] = next;
-        next += partition_freq[bucket_idx];
-    }
-    // DEBUG: sanity check
-    if (next != (alt_array + repr_array_size)) {
-        throw std::logic_error(
-            "partitioning:: final ptr should be exactly at the end of the "
-            "alt_array");
-    }
+    // GPU working area
+    entry* gpu_entry_array;
+    entry_repr* gpu_repr_array;
+    entry_repr* gpu_alt_array;
+    cudaMalloc(&gpu_entry_array, entry_array_size * sizeof(entry));
+    cudaMalloc(&gpu_repr_array, repr_array_size * sizeof(entry_repr));
+    cudaMalloc(&gpu_alt_array, repr_array_size * sizeof(entry_repr));
 
-    // Partition (move)
-    for (unsigned int repr_idx = 0; repr_idx != repr_array_size; ++repr_idx) {
-        // work[repr_idx] = std::async(std::launch::async, [repr_array,
-        // repr_idx, &bucket_mutex]() -> void {
-        // Extract substring and categorize into bucket
-        entry_repr repr = repr_array[repr_idx];
-        uint8_t* string = (repr.origin + repr.str_idx)->data;
-        unsigned int bucket_idx = static_cast<unsigned int>(string[repr.str_shift]);
+    // Init GPU working area
+    cudaMemcpy(gpu_entry_array, entry_repr::origin,
+               entry_array_size * sizeof(entry), cudaMemcpyHostToDevice);
+    cudaMemcpy(gpu_repr_array, repr_array, repr_array_size * sizeof(entry_repr),
+               cudaMemcpyHostToDevice);
 
-        *(bucket_ptrs[bucket_idx] + bucket_key_label[repr_idx]) = repr;
-        //});
-    }
+    // alternation pointers
+    entry_repr *gpu_from = gpu_repr_array, *gpu_to = gpu_alt_array;
 
-    // swap the entire repr array
-    delete[] repr_array;
-    repr_array = alt_array;
-}
+    // allocate tmp workspaces on device
+    unsigned int* gpu_bucket_indexes;
+    unsigned int* gpu_bucket_key_label;
+    unsigned int* gpu_bucket_HEADs;
+    cudaMalloc(&gpu_bucket_indexes, repr_array_size * sizeof(unsigned int));
+    cudaMalloc(&gpu_bucket_key_label, repr_array_size * sizeof(unsigned int));
+    cudaMalloc(&gpu_bucket_HEADs, sort::RADIX_SIZE * sizeof(unsigned int));
 
-void radix_sort(entry_repr* repr_array, const unsigned int repr_array_size) {
-    // alternate working area
-    entry_repr* alt_array = new entry_repr[repr_array_size];
-    entry_repr *from = repr_array,
-               *to = alt_array;  // alternation pointers
+    // re-use storage across passes
+    unsigned int* bucket_indexes;
+    unsigned int* bucket_key_label;
+    unsigned int* bucket_HEADs;
+    unsigned int* frequency;
+    cudaHostAlloc(&bucket_indexes, repr_array_size * sizeof(unsigned int),
+                  cudaHostAllocDefault);
+    cudaHostAlloc(&bucket_key_label, repr_array_size * sizeof(unsigned int),
+                  cudaHostAllocDefault);
+    cudaHostAlloc(&bucket_HEADs, sort::RADIX_SIZE * sizeof(unsigned int),
+                  cudaHostAllocDefault);
+    cudaHostAlloc(&frequency, sort::RADIX_SIZE * sizeof(unsigned int),
+                  cudaHostAllocDefault);
 
     for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
-        //std::cerr << "---\npass: " << pass << " starts\n";
-        // Count entry histograms to deteremine bucket sizes beforehand
-        unsigned int frequency[RADIX_SIZE] = {0U};
-        unsigned int* bucket_key_label = new unsigned int[repr_array_size];
-        for (unsigned int i = 0; i != repr_array_size; ++i) {  // init array
-            bucket_key_label[i] = 0U;
+        // init arrays
+        for (unsigned int i = 0; i != sort::RADIX_SIZE; ++i) {
+            frequency[i] = 0U;
         }
-        //std::cerr << "Creating data histogram\n";
+
+        // TODO: set constants in device constant memory
+        // pass, array_size
+
+        // calculate bucket indexes
+        calc_bucket_index<<<blocksPerGrid, threadsPerBlock>>>(
+            pass, gpu_entry_array, gpu_from, repr_array_size,
+            gpu_bucket_indexes);
+        // TODO: use async memory op
+        cudaMemcpy(bucket_indexes, gpu_bucket_indexes,
+                   repr_array_size * sizeof(unsigned int),
+                   cudaMemcpyDeviceToHost);
+
+        // create data histogram
         for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
              ++repr_idx) {
-            // Extract partition bits
-            entry_repr repr = from[repr_idx];
-            uint8_t* string = (repr.origin[repr.str_idx]).data;
-            uint8_t partition_bits[4];
-            //std::cerr << "\nstring: " << repr << "\n";
-            unsigned int actual_shift =
-                static_cast<unsigned int>(repr.str_shift) + 64 - 3 - pass * 4;
-            actual_shift %= 65;
-            //std::cerr << "shift: " << actual_shift << "\n";
-
-            // clang-format off
-            if ((actual_shift + 3) > 64) {
-                // cyclic combination
-                //DEBUG: std::cerr << YELLOW("CPY: ") << "data+" << actual_shift << ", size " << (65 - actual_shift) << "\n";
-                //DEBUG: std::cerr << YELLOW("CPY: ") << "data+" << (65 - actual_shift) << ", size " << (4 - (65 - actual_shift)) << "\n";
-                std::memcpy(partition_bits,
-                            string + actual_shift,
-                            (65 - actual_shift) * sizeof(uint8_t));
-                std::memcpy(
-                    partition_bits + (65 - actual_shift),
-                    string,
-                    (4 - (65 - actual_shift)) * sizeof(uint8_t));
-            } else {
-                // normal
-                //DEBUG: std::cerr << YELLOW("CPY: ") << "data+" << actual_shift << ", size 4\n";
-                std::memcpy(partition_bits,
-                            string + actual_shift,
-                            4 * sizeof(uint8_t));
-            }
-            // clang-format on
-
-            /*DEBUG: std::cerr << "bits " << static_cast<unsigned
-               int>(partition_bits[0])
-                      << "," << static_cast<unsigned int>(partition_bits[1])
-                      << "," << static_cast<unsigned int>(partition_bits[2])
-                      << "," << static_cast<unsigned int>(partition_bits[3])
-                      << "\n";*/
-            unsigned int bucket_idx =
-                static_cast<unsigned int>(partition_bits[0]) * 125 +
-                static_cast<unsigned int>(partition_bits[1]) * 25 +
-                static_cast<unsigned int>(partition_bits[2]) * 5 +
-                static_cast<unsigned int>(partition_bits[3]);
-
-            // Log number of bucket key occurrence of each entry
+            unsigned int bucket_idx = bucket_indexes[repr_idx];
             bucket_key_label[repr_idx] = frequency[bucket_idx];
-            // Update bucket key frequency info
             frequency[bucket_idx] += 1;
-
-            /*std::cerr << "\nbucket_idx " << bucket_idx << "\n";
-            std::cerr << RED("bucket_key_label ")
-                      << static_cast<unsigned int>(bucket_key_label[repr_idx])
-                      << "\n";
-            std::cerr << YELLOW("frequency ")
-                      << static_cast<unsigned int>(frequency[bucket_idx])
-                      << "\n";*/
         }
-
-        //std::cerr << "Init bucket boundaries\n";
-        // Initialize bucket boundaries
-        entry_repr* bucket_ptrs[RADIX_SIZE];
-        entry_repr* next = to;
-        for (unsigned int bucket_idx = 0; bucket_idx != RADIX_SIZE;
+        cudaMemcpy(bucket_key_label, gpu_bucket_key_label,
+                   repr_array_size * sizeof(unsigned int),
+                   cudaMemcpyHostToDevice);
+        // Init bucket HEADs (bucket HEAD pointers)
+        unsigned int next = 0;
+        for (unsigned int bucket_idx = 0; bucket_idx != sort::RADIX_SIZE;
              ++bucket_idx) {
-            bucket_ptrs[bucket_idx] = next;
+            bucket_HEADs[bucket_idx] = next;
             next += frequency[bucket_idx];
         }
-        // DEBUG: sanity check
-        if (next != (to + repr_array_size)) {
-            std::cerr << "sanity failure on pass: " << pass << "\n";
-            throw std::logic_error(
-                "radix_sort:: final ptr should be exactly at the end of "
-                "the "
-                "alt_array");
-        }
+        cudaMemcpy(bucket_HEADs, gpu_bucket_HEADs,
+                   repr_array_size * sizeof(unsigned int),
+                   cudaMemcpyHostToDevice);
 
-        //std::cerr << GREEN("actually moving data\n");
-        // actually moving data to buckets
-        for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
-             ++repr_idx) {
-            // work[repr_idx] = std::async(std::launch::async, [from, repr_idx,
-            // &bucket_mutex, &bucket_ptrs]() -> void {
-            entry_repr repr = from[repr_idx];
-            uint8_t* string = (repr.origin + repr.str_idx)->data;
-            uint8_t partition_bits[4];
-            unsigned int actual_shift =
-                static_cast<unsigned int>(repr.str_shift) + 64 - 3 - pass * 4;
-            actual_shift %= 65;
-
-            // extract substring and categorize into bucket
-            // clang-format off
-            if ((actual_shift + 3) > 64) {
-                // cyclic combination
-                std::memcpy(partition_bits,
-                            string + actual_shift,
-                            (65 - actual_shift) * sizeof(uint8_t));
-                std::memcpy(
-                    partition_bits + (65 - actual_shift),
-                    string,
-                    (4 - (65 - actual_shift)) * sizeof(uint8_t));
-            } else {
-                // normal
-                std::memcpy(partition_bits,
-                            string + actual_shift,
-                            4 * sizeof(uint8_t));
-            }
-            /*std::cerr << repr << "\n";
-            std::cerr << PARTITION_CHARS + pass * 4 << " - " << PARTITION_CHARS + pass * 4 + 3 << "\n";
-            std::cerr << RED("bits: ")
-            << (unsigned int)(partition_bits[0])
-            << " " << (unsigned int)(partition_bits[1])
-            << " " << (unsigned int)(partition_bits[2])
-            << " " << (unsigned int)(partition_bits[3]) << "\n";
-            std::cerr << YELLOW("char: ")
-            << rchar(partition_bits[0])
-            << " " << rchar(partition_bits[1])
-            << " " << rchar(partition_bits[2])
-            << " " << rchar(partition_bits[3]) << "\n";*/
-            // clang-format on
-
-            unsigned int bucket_idx =
-                static_cast<unsigned int>(partition_bits[0]) * 125 +
-                static_cast<unsigned int>(partition_bits[1]) * 25 +
-                static_cast<unsigned int>(partition_bits[2]) * 5 +
-                static_cast<unsigned int>(partition_bits[3]);
-
-            *(bucket_ptrs[bucket_idx] + bucket_key_label[repr_idx]) = repr;
-            //});
-        }
+        // actually move data to buckets
+        move_to_buckets<<<blocksPerGrid, threadsPerBlock>>>(
+            gpu_from, gpu_to, repr_array_size, gpu_bucket_HEADs,
+            gpu_bucket_key_label, gpu_bucket_indexes);
 
         // swap arrays (via pointers {from}/{to} swapping)
-        entry_repr* ptr_swap_tmp = from;
-        from = to;
-        to = ptr_swap_tmp;
-        //std::cerr << "pass: " << pass << " ends\n";
+        entry_repr* gpu_ptr_swap_tmp = gpu_from;
+        gpu_from = gpu_to;
+        gpu_to = gpu_ptr_swap_tmp;
     }
 
     // return the correct array if ${RADIX_LEVELS} is odd
     if (RADIX_LEVELS & 1) {
-        std::memcpy(repr_array, alt_array, repr_array_size);
-        delete[] alt_array;
+        cudaMemcpy(gpu_alt_array, repr_array,
+                   repr_array_size * sizeof(entry_repr),
+                   cudaMemcpyDeviceToHost);
     } else {
-        delete[] alt_array;
+        cudaMemcpy(gpu_repr_array, repr_array,
+                   repr_array_size * sizeof(entry_repr),
+                   cudaMemcpyDeviceToHost);
     }
+
+    // Cleanup
+    cudaFree(gpu_bucket_indexes);
+    cudaFree(gpu_bucket_key_label);
+    cudaFree(gpu_bucket_HEADs);
+
+    cudaFree(gpu_entry_array);
+    cudaFree(gpu_repr_array);
+    cudaFree(gpu_alt_array);
+
+    cudaFreeHost(bucket_indexes);
+    cudaFreeHost(bucket_key_label);
+    cudaFreeHost(bucket_HEADs);
+    cudaFreeHost(frequency);
 }
 
 }  // namespace sort

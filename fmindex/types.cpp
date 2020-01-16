@@ -9,7 +9,7 @@
 
 namespace utils {
 
-uint8_t char_hash(char c) {
+__host__ __device__ uint8_t char_hash(char c) {
     // maps ACGT$
     switch (c) {
         case '$':
@@ -28,11 +28,13 @@ uint8_t char_hash(char c) {
             return 4;
             break;
         default:
-            throw std::domain_error("char_hash: argument out of range");
+            // HACK: device code does not support exception handling
+            // throw std::domain_error("char_hash: argument out of range");
+            return 7;
     }
 }
 
-char reverse_char(uint8_t c) {
+__host__ __device__ char reverse_char(uint8_t c) {
     switch (c) {
         case 0:
             return '$';
@@ -50,23 +52,25 @@ char reverse_char(uint8_t c) {
             return 'T';
             break;
         default:
-            throw std::domain_error("reverse_char: argument out of range");
+            // HACK: device code does not support exception handling
+            // throw std::domain_error("reverse_char: argument out of range");
+            return 7;
     }
 }
 
 }  // namespace utils
 
-entry::entry() {
+__host__ __device__ entry::entry() {
     // Default constructor
 }
 
-entry::entry(const char* string) {
+__host__ __device__ entry::entry(const char* string) {
     for (int char_idx = 0; char_idx != 64; ++char_idx) {
         this->data[char_idx] = utils::char_hash(string[char_idx]);
     }
 }
 
-entry& entry::operator=(const entry& other) {
+__host__ __device__ entry& entry::operator=(const entry& other) {
     if (&other == this) {  // Check for self-assignment
         return *this;
     }
@@ -86,17 +90,17 @@ std::ostream& operator<<(std::ostream& os, entry& self) {
 // entry_repr
 entry* entry_repr::origin;
 
-entry_repr::entry_repr(uint32_t str_idx, uint8_t str_shift)
+__host__ __device__ entry_repr::entry_repr(uint32_t str_idx, uint8_t str_shift)
     : str_idx(str_idx), str_shift(str_shift) {}
 
-entry_repr::entry_repr() : str_idx(0), str_shift(0) {}
+__host__ __device__ entry_repr::entry_repr() : str_idx(0), str_shift(0) {}
 
-entry_repr::entry_repr(const entry_repr& other) {
+__host__ __device__ entry_repr::entry_repr(const entry_repr& other) {
     this->str_idx = other.str_idx;
     this->str_shift = other.str_shift;
 }
 
-entry_repr& entry_repr::operator=(const entry_repr& other) {
+__host__ __device__ entry_repr& entry_repr::operator=(const entry_repr& other) {
     // Check for self-assignment
     if (&other == this) {
         return *this;

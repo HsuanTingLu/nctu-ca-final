@@ -86,8 +86,14 @@ int main(int argc, char** argv) {
         mergeAllSorted4bitSuffixes(TA_4b_sorted_suffixes, INPUTSIZE, 64);
     }
     auto TA_timer_end = std::chrono::high_resolution_clock::now();
+    double TA_time_spent =
+        static_cast<double>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                TA_timer_end - TA_timer_start)
+                .count()) /
+        1000000;
+    std::cout << "TA code spent: " << TA_time_spent << " s" << std::endl;
     delete[] TA_str_array;
-    delete[] TA_4b_sorted_suffixes;
     /************************************
      *                                  *
      *   TA's code: TIME CAPTURE ENDS   *
@@ -112,40 +118,9 @@ int main(int argc, char** argv) {
     int)(repr_array[i].str_shift) << std::endl;
     }*/
 
-    // Scan for distribution
-    unsigned int partition_freq[sort::PARTITION_SIZE] = {0U};
-
-    // Partition
-    std::cout << "do partition" << std::endl;
-    sort::partitioning(repr_array, EXPANDEDSIZE, partition_freq);
-    std::cout << "post partitioning" << std::endl;
-    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
-        std::cout << repr_array[i] << " " << (unsigned
-    int)(repr_array[i].str_shift) << std::endl;
-    }*/
-
     // Sort
     std::cerr << "check sorting\n";
-    std::future<void> sort_work[sort::PARTITION_SIZE];
-    for (unsigned int part = 0; part != sort::PARTITION_SIZE; ++part) {
-        unsigned int section_shift =
-            std::accumulate(partition_freq, partition_freq + part, 0);
-        entry_repr* subarray_head = repr_array + section_shift;
-        unsigned int subarray_size = partition_freq[part];
-        std::cout << "Start sorting sub-section " << part
-                  << ", shift = " << section_shift
-                  << ", size = " << subarray_size << std::endl;
-        // sort_work[part] = std::async(
-        // std::launch::async, [subarray_head, subarray_size]() -> void {
-        sort::radix_sort(subarray_head, subarray_size);
-        //});
-        // sort_work[part].wait();
-    }
-    // sort::radix_sort(repr_array, EXPANDEDSIZE);
-    for (unsigned int part = 0; part != sort::PARTITION_SIZE; ++part) {
-        // sort_work[part].wait();
-        std::cout << "Finish sorting sub-section " << part << std::endl;
-    }
+    sort::radix_sort(repr_array, INPUTSIZE);
 
     std::cout << "post sorting" << std::endl;
     for (int i = 0; i != EXPANDEDSIZE; ++i) {
@@ -168,23 +143,17 @@ int main(int argc, char** argv) {
 
     // Correctness check and speedup calculation
     if (std::stoi(argv[2])) {
-        double TA_time_spent =
-            static_cast<double>(
-                std::chrono::duration_cast<std::chrono::microseconds>(
-                    TA_timer_end - TA_timer_start)
-                    .count()) /
-            1000000;
-        std::cout << "TA code spent: " << TA_time_spent << " s" << std::endl;
-
-        double speedup = 0.0;
         if (checker(INPUTSIZE, TA_4b_sorted_suffixes,
                     student_4b_sorted_suffixes) == 1) {
-            speedup = TA_time_spent / student_time_spent;
+            std::cout << "answer correct" << std::endl;
         }
-        std::cout << "Speedup=" << speedup << std::endl;
     }
+    double speedup = TA_time_spent / student_time_spent;
+    std::cout << "Speedup=" << speedup << std::endl;
 
     // cleanup
     delete[] str_array;
     delete[] repr_array;
+    delete[] TA_4b_sorted_suffixes;
+    delete[] student_4b_sorted_suffixes;
 }
