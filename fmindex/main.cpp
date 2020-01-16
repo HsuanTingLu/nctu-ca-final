@@ -22,7 +22,7 @@
 #include <future>
 
 #include "types.hpp"
-#include "parallel_radix_sort.hpp"
+#include "gpu_radix_sort.hpp"
 #include "TA.hpp"
 // clang-format on
 
@@ -40,8 +40,8 @@ void read_input(std::ifstream* ifs, entry* array, char (*TA_array)[64],
 }
 
 int main(int argc, char** argv) {
-    if (argc != 1 + 2) {
-        throw std::invalid_argument("2 arguments needed");
+    if (argc != 1 + 1) {
+        throw std::invalid_argument("1 arguments needed");
     }
 
     // Read to memory
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
      */
     auto TA_timer_start = std::chrono::high_resolution_clock::now();
 
-    if (std::stoi(argv[2])) {
+    if (1) { //std::stoi(argv[2])
         std::cerr << "Measure TA time\n";
         pipeline(TA_str_array, 64, INPUTSIZE, TA_4b_sorted_suffixes);
         mergeAllSorted4bitSuffixes(TA_4b_sorted_suffixes, INPUTSIZE, 64);
@@ -121,16 +121,15 @@ int main(int argc, char** argv) {
     // Sort
     std::cerr << "check sorting\n";
     sort::radix_sort(repr_array, INPUTSIZE);
-
     std::cout << "post sorting" << std::endl;
-    for (int i = 0; i != EXPANDEDSIZE; ++i) {
+    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
         std::cout << repr_array[i] << std::endl;
-    }
+    }*/
 
     // FIXME: Fulfill TA's specifications: expand and encode
-    for (unsigned int repr_idx = 0; repr_idx != EXPANDEDSIZE; ++repr_idx) {
-        // TODO: expand and encode
-    }
+
+    char (*result_array)[32];
+    sort::encode(entry_array,repr_array, EXPANDEDSIZE,result_array);
 
     auto student_timer_end = std::chrono::high_resolution_clock::now();
     double student_time_spent =
@@ -139,17 +138,17 @@ int main(int argc, char** argv) {
                 student_timer_end - student_timer_start)
                 .count()) /
         1000000;
-    std::cout << "spent: " << student_time_spent << "s" << std::endl;
+    std::cout << "STUDENT CODE spent: " << student_time_spent << "s" << std::endl;
 
     // Correctness check and speedup calculation
-    if (std::stoi(argv[2])) {
+    if (1) { // std::stoi(argv[2])
         if (checker(INPUTSIZE, TA_4b_sorted_suffixes,
                     student_4b_sorted_suffixes) == 1) {
             std::cout << "answer correct" << std::endl;
         }
+        double speedup = TA_time_spent / student_time_spent;
+        std::cout << "Speedup=" << speedup << std::endl;
     }
-    double speedup = TA_time_spent / student_time_spent;
-    std::cout << "Speedup=" << speedup << std::endl;
 
     // cleanup
     delete[] str_array;

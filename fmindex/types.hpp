@@ -16,6 +16,7 @@ namespace utils {
 
 __host__ __device__ uint8_t char_hash(char c);
 __host__ __device__ char reverse_char(uint8_t c);
+__host__ __device__ unsigned int four_bit_encode(char c);
 
 }  // namespace utils
 

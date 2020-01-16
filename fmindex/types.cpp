@@ -58,6 +58,28 @@ __host__ __device__ char reverse_char(uint8_t c) {
     }
 }
 
+__host__ __device__ unsigned int four_bit_encode(char c){
+	switch (c) {
+        case '$':
+            return 0;
+            break;
+        case 'A':
+            return 1;
+            break;
+        case 'C':
+            return 2;
+            break;
+        case 'G':
+            return 4;
+            break;
+        case 'T':
+            return 8;
+            break;
+        default:
+            return 7;
+    }
+}
+
 }  // namespace utils
 
 __host__ __device__ entry::entry() {

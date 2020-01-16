@@ -27,6 +27,11 @@ void expand_rotation(const int array_size, entry_repr* repr_array);
 
 void radix_sort(entry_repr* repr_array, const unsigned int entry_array_size);
 
+void encode(entry* entry_array,
+            entry_repr* repr_array,
+            unsigned int repr_array_size,
+            char (*result_array)[32]);
+
 }  // namespace sort
 
 #endif

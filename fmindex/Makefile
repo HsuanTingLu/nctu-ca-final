@@ -9,22 +9,19 @@
 .PHONY: clean run
 
 # target: GTX1080ti with CUDA-9.0 runtime
-CXX=nvcc -std=c++14 -arch=sm_61 -O3
-objects = main.o types.o kernel.o gpu_radix_sort.o
+CXX=nvcc -std=c++14 -arch=sm_61 -O3 -pg
+objects = main.o types.o gpu_radix_sort.o
 
 all : fmindex
 
 %.o: %.cpp
 	$(CXX) -x cu -I. -dc $< -o $@
 
-%.o: %.cu
-	$(CXX) -x cu -I. -dc $< -o $@
-
 fmindex : $(objects)
 	$(CXX) $(objects) -o fmindex.out
 
 run: fmindex
-	./fmindex ../special_1.txt
+	./fmindex.out ../special_1.txt 0
 
 clean:
-	rm *.o program.out
+	rm *.o fmindex.out

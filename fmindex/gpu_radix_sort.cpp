@@ -16,6 +16,7 @@
 #include <iostream>  // DEBUG:
 
 #include "gpu_radix_sort.hpp"
+#include "kernels.cu"
 // clang-format on
 // DEBUG:
 #define RED(x) "\033[31m" x "\033[0m"
@@ -162,6 +163,18 @@ void radix_sort(entry_repr* repr_array, const unsigned int entry_array_size) {
     cudaFreeHost(bucket_key_label);
     cudaFreeHost(bucket_HEADs);
     cudaFreeHost(frequency);
+}
+
+void encode(entry* entry_array,
+            entry_repr* repr_array,
+            unsigned int repr_array_size,
+            char (*result_array)[32]) {
+
+    constexpr const int threadsPerBlock = 1024;
+    const int blocksPerGrid =
+        (repr_array_size + threadsPerBlock - 1) / threadsPerBlock;
+    
+    expand_and_encode<<<blocksPerGrid, threadsPerBlock>>>(entry_array, repr_array, repr_array_size, result_array);
 }
 
 }  // namespace sort
