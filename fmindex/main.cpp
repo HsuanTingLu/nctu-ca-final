@@ -27,7 +27,7 @@
 // clang-format on
 
 // TODO: pin memory
-void read_input(std::ifstream* ifs, entry* array, char (*TA_array)[64],
+void read_input(std::ifstream *ifs, entry *array, char (*TA_array)[64],
                 const int INPUTSIZE) {
     char buffer[64];
     buffer[63] = '$';
@@ -39,7 +39,7 @@ void read_input(std::ifstream* ifs, entry* array, char (*TA_array)[64],
     }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     if (argc != 1 + 1) {
         throw std::invalid_argument("1 arguments needed");
     }
@@ -55,15 +55,15 @@ int main(int argc, char** argv) {
 
     // Allocate array
     // TODO: also do cuda-version pinned host malloc
-    entry* str_array = new entry[INPUTSIZE];
+    entry *str_array = new entry[INPUTSIZE];
     entry_repr::origin = str_array;
-    entry_repr* repr_array = new entry_repr[EXPANDEDSIZE];
+    entry_repr *repr_array = new entry_repr[EXPANDEDSIZE];
     // allocate TA's array
     char(*TA_str_array)[64] = new char[INPUTSIZE][64];
-    char** TA_4b_sorted_suffixes =
-        new char*[INPUTSIZE];  // expanded string array
+    char **TA_4b_sorted_suffixes =
+        new char *[INPUTSIZE];  // expanded string array
     // TA's structures for correctness check
-    char** student_4b_sorted_suffixes = new char*[INPUTSIZE];
+    char **student_4b_sorted_suffixes = new char *[INPUTSIZE];
     // Init TA's structures
     // TODO: what to do?
 
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
      */
     auto TA_timer_start = std::chrono::high_resolution_clock::now();
 
-    if (1) { //std::stoi(argv[2])
+    if (1) {  // std::stoi(argv[2])
         std::cerr << "Measure TA time\n";
         pipeline(TA_str_array, 64, INPUTSIZE, TA_4b_sorted_suffixes);
         mergeAllSorted4bitSuffixes(TA_4b_sorted_suffixes, INPUTSIZE, 64);
@@ -122,14 +122,14 @@ int main(int argc, char** argv) {
     std::cerr << "check sorting\n";
     sort::radix_sort(repr_array, INPUTSIZE);
     std::cout << "post sorting" << std::endl;
-    /*for (int i = 0; i != EXPANDEDSIZE; ++i) {
+    for (int i = 0; i != EXPANDEDSIZE; ++i) {
         std::cout << repr_array[i] << std::endl;
-    }*/
+    }
 
     // FIXME: Fulfill TA's specifications: expand and encode
 
-    char (*result_array)[32];
-    sort::encode(entry_array,repr_array, EXPANDEDSIZE,result_array);
+    char(*result_array)[32];
+    sort::encode(str_array, repr_array, EXPANDEDSIZE, result_array);
 
     auto student_timer_end = std::chrono::high_resolution_clock::now();
     double student_time_spent =
@@ -138,10 +138,11 @@ int main(int argc, char** argv) {
                 student_timer_end - student_timer_start)
                 .count()) /
         1000000;
-    std::cout << "STUDENT CODE spent: " << student_time_spent << "s" << std::endl;
+    std::cout << "STUDENT CODE spent: " << student_time_spent << "s"
+              << std::endl;
 
     // Correctness check and speedup calculation
-    if (1) { // std::stoi(argv[2])
+    if (1) {  // std::stoi(argv[2])
         if (checker(INPUTSIZE, TA_4b_sorted_suffixes,
                     student_4b_sorted_suffixes) == 1) {
             std::cout << "answer correct" << std::endl;

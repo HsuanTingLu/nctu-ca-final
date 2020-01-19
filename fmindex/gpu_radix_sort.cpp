@@ -25,7 +25,7 @@
 
 namespace sort {
 
-void expand_rotation(const int array_size, entry_repr* repr_array) {
+void expand_rotation(const int array_size, entry_repr *repr_array) {
     /* Expands and creates the entire table of representations of
      * strings-to-be-sorted
      *
@@ -43,7 +43,7 @@ void expand_rotation(const int array_size, entry_repr* repr_array) {
     }
 }  // namespace sort
 
-void radix_sort(entry_repr* repr_array, const unsigned int entry_array_size) {
+void radix_sort(entry_repr *repr_array, const unsigned int entry_array_size) {
     const unsigned int repr_array_size = entry_array_size * 64;
     // Set CUDA kernel launch configurations
     constexpr const int threadsPerBlock = 1024;
@@ -51,9 +51,9 @@ void radix_sort(entry_repr* repr_array, const unsigned int entry_array_size) {
         (repr_array_size + threadsPerBlock - 1) / threadsPerBlock;
 
     // GPU working area
-    entry* gpu_entry_array;
-    entry_repr* gpu_repr_array;
-    entry_repr* gpu_alt_array;
+    entry *gpu_entry_array;
+    entry_repr *gpu_repr_array;
+    entry_repr *gpu_alt_array;
     cudaMalloc(&gpu_entry_array, entry_array_size * sizeof(entry));
     cudaMalloc(&gpu_repr_array, repr_array_size * sizeof(entry_repr));
     cudaMalloc(&gpu_alt_array, repr_array_size * sizeof(entry_repr));
@@ -68,18 +68,18 @@ void radix_sort(entry_repr* repr_array, const unsigned int entry_array_size) {
     entry_repr *gpu_from = gpu_repr_array, *gpu_to = gpu_alt_array;
 
     // allocate tmp workspaces on device
-    unsigned int* gpu_bucket_indexes;
-    unsigned int* gpu_bucket_key_label;
-    unsigned int* gpu_bucket_HEADs;
+    unsigned int *gpu_bucket_indexes;
+    unsigned int *gpu_bucket_key_label;
+    unsigned int *gpu_bucket_HEADs;
     cudaMalloc(&gpu_bucket_indexes, repr_array_size * sizeof(unsigned int));
     cudaMalloc(&gpu_bucket_key_label, repr_array_size * sizeof(unsigned int));
     cudaMalloc(&gpu_bucket_HEADs, sort::RADIX_SIZE * sizeof(unsigned int));
 
     // re-use storage across passes
-    unsigned int* bucket_indexes;
-    unsigned int* bucket_key_label;
-    unsigned int* bucket_HEADs;
-    unsigned int* frequency;
+    unsigned int *bucket_indexes;
+    unsigned int *bucket_key_label;
+    unsigned int *bucket_HEADs;
+    unsigned int *frequency;
     cudaHostAlloc(&bucket_indexes, repr_array_size * sizeof(unsigned int),
                   cudaHostAllocDefault);
     cudaHostAlloc(&bucket_key_label, repr_array_size * sizeof(unsigned int),
@@ -90,6 +90,7 @@ void radix_sort(entry_repr* repr_array, const unsigned int entry_array_size) {
                   cudaHostAllocDefault);
 
     for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
+        std::cout << "pass: " << pass << std::endl;
         // init arrays
         for (unsigned int i = 0; i != sort::RADIX_SIZE; ++i) {
             frequency[i] = 0U;
@@ -107,6 +108,11 @@ void radix_sort(entry_repr* repr_array, const unsigned int entry_array_size) {
                    repr_array_size * sizeof(unsigned int),
                    cudaMemcpyDeviceToHost);
 
+        // FIXME: DEBUG:
+        /*for(unsigned int i=0; i!=repr_array_size; ++i) {
+            std::cout << bucket_indexes[i] << std::endl;
+        }*/
+
         // create data histogram
         for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
              ++repr_idx) {
@@ -114,7 +120,7 @@ void radix_sort(entry_repr* repr_array, const unsigned int entry_array_size) {
             bucket_key_label[repr_idx] = frequency[bucket_idx];
             frequency[bucket_idx] += 1;
         }
-        cudaMemcpy(bucket_key_label, gpu_bucket_key_label,
+        cudaMemcpy(gpu_bucket_key_label, bucket_key_label,
                    repr_array_size * sizeof(unsigned int),
                    cudaMemcpyHostToDevice);
         // Init bucket HEADs (bucket HEAD pointers)
@@ -124,31 +130,32 @@ void radix_sort(entry_repr* repr_array, const unsigned int entry_array_size) {
             bucket_HEADs[bucket_idx] = next;
             next += frequency[bucket_idx];
         }
-        cudaMemcpy(bucket_HEADs, gpu_bucket_HEADs,
-                   repr_array_size * sizeof(unsigned int),
+        cudaMemcpy(gpu_bucket_HEADs, bucket_HEADs,
+                   sort::RADIX_SIZE * sizeof(unsigned int),
                    cudaMemcpyHostToDevice);
-
+        cudaDeviceSetLimit(cudaLimitPrintfFifoSize, 102400);
         // actually move data to buckets
         move_to_buckets<<<blocksPerGrid, threadsPerBlock>>>(
             gpu_from, gpu_to, repr_array_size, gpu_bucket_HEADs,
             gpu_bucket_key_label, gpu_bucket_indexes);
 
+        // FIXME:
+        entry_repr *debugg = new entry_repr[repr_array_size];
+        cudaMemcpy(debugg, gpu_to, repr_array_size * sizeof(unsigned int),
+                   cudaMemcpyDeviceToHost);
+        /*for (unsigned int i = 0; i != repr_array_size; ++i) {
+          std::cout << debugg[i] << std::endl;
+        }*/
+
         // swap arrays (via pointers {from}/{to} swapping)
-        entry_repr* gpu_ptr_swap_tmp = gpu_from;
+        entry_repr *gpu_ptr_swap_tmp = gpu_from;
         gpu_from = gpu_to;
         gpu_to = gpu_ptr_swap_tmp;
     }
 
     // return the correct array if ${RADIX_LEVELS} is odd
-    if (RADIX_LEVELS & 1) {
-        cudaMemcpy(gpu_alt_array, repr_array,
-                   repr_array_size * sizeof(entry_repr),
-                   cudaMemcpyDeviceToHost);
-    } else {
-        cudaMemcpy(gpu_repr_array, repr_array,
-                   repr_array_size * sizeof(entry_repr),
-                   cudaMemcpyDeviceToHost);
-    }
+    cudaMemcpy(repr_array, gpu_repr_array, repr_array_size * sizeof(entry_repr),
+               cudaMemcpyDeviceToHost);
 
     // Cleanup
     cudaFree(gpu_bucket_indexes);
@@ -156,8 +163,8 @@ void radix_sort(entry_repr* repr_array, const unsigned int entry_array_size) {
     cudaFree(gpu_bucket_HEADs);
 
     cudaFree(gpu_entry_array);
-    cudaFree(gpu_repr_array);
-    cudaFree(gpu_alt_array);
+    cudaFree(gpu_to);
+    cudaFree(gpu_from);
 
     cudaFreeHost(bucket_indexes);
     cudaFreeHost(bucket_key_label);
@@ -165,16 +172,14 @@ void radix_sort(entry_repr* repr_array, const unsigned int entry_array_size) {
     cudaFreeHost(frequency);
 }
 
-void encode(entry* entry_array,
-            entry_repr* repr_array,
-            unsigned int repr_array_size,
-            char (*result_array)[32]) {
-
+void encode(entry *entry_array, entry_repr *repr_array,
+            unsigned int repr_array_size, char (*result_array)[32]) {
     constexpr const int threadsPerBlock = 1024;
     const int blocksPerGrid =
         (repr_array_size + threadsPerBlock - 1) / threadsPerBlock;
-    
-    expand_and_encode<<<blocksPerGrid, threadsPerBlock>>>(entry_array, repr_array, repr_array_size, result_array);
+
+    expand_and_encode<<<blocksPerGrid, threadsPerBlock>>>(
+        entry_array, repr_array, repr_array_size, result_array);
 }
 
 }  // namespace sort
