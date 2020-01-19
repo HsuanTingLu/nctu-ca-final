@@ -43,26 +43,19 @@ void expand_rotation(const int array_size, entry_repr *repr_array) {
     }
 }  // namespace sort
 
-void radix_sort(entry_repr *repr_array, const unsigned int entry_array_size) {
+void radix_sort(entry *gpu_entry_array, entry_repr *gpu_repr_array,
+                entry_repr *gpu_alt_array,
+                const unsigned int entry_array_size) {
     const unsigned int repr_array_size = entry_array_size * 64;
     // Set CUDA kernel launch configurations
     constexpr const int threadsPerBlock = 1024;
     const int blocksPerGrid =
         (repr_array_size + threadsPerBlock - 1) / threadsPerBlock;
 
-    // GPU working area
-    entry *gpu_entry_array;
-    entry_repr *gpu_repr_array;
-    entry_repr *gpu_alt_array;
-    cudaMalloc(&gpu_entry_array, entry_array_size * sizeof(entry));
-    cudaMalloc(&gpu_repr_array, repr_array_size * sizeof(entry_repr));
-    cudaMalloc(&gpu_alt_array, repr_array_size * sizeof(entry_repr));
-
-    // Init GPU working area
-    cudaMemcpy(gpu_entry_array, entry_repr::origin,
-               entry_array_size * sizeof(entry), cudaMemcpyHostToDevice);
-    cudaMemcpy(gpu_repr_array, repr_array, repr_array_size * sizeof(entry_repr),
-               cudaMemcpyHostToDevice);
+    cudaStream_t stream_bkt_idx, stream_bkt_HEAD, stream_key_lbl;
+    cudaStreamCreate(&stream_bkt_idx);
+    cudaStreamCreate(&stream_bkt_HEAD);
+    cudaStreamCreate(&stream_key_lbl);
 
     // alternation pointers
     entry_repr *gpu_from = gpu_repr_array, *gpu_to = gpu_alt_array;
@@ -80,14 +73,10 @@ void radix_sort(entry_repr *repr_array, const unsigned int entry_array_size) {
     unsigned int *bucket_key_label;
     unsigned int *bucket_HEADs;
     unsigned int *frequency;
-    cudaHostAlloc(&bucket_indexes, repr_array_size * sizeof(unsigned int),
-                  cudaHostAllocDefault);
-    cudaHostAlloc(&bucket_key_label, repr_array_size * sizeof(unsigned int),
-                  cudaHostAllocDefault);
-    cudaHostAlloc(&bucket_HEADs, sort::RADIX_SIZE * sizeof(unsigned int),
-                  cudaHostAllocDefault);
-    cudaHostAlloc(&frequency, sort::RADIX_SIZE * sizeof(unsigned int),
-                  cudaHostAllocDefault);
+    cudaMallocHost(&bucket_indexes, repr_array_size * sizeof(unsigned int));
+    cudaMallocHost(&bucket_key_label, repr_array_size * sizeof(unsigned int));
+    cudaMallocHost(&bucket_HEADs, sort::RADIX_SIZE * sizeof(unsigned int));
+    cudaMallocHost(&frequency, sort::RADIX_SIZE * sizeof(unsigned int));
 
     for (unsigned int pass = 0; pass != RADIX_LEVELS; ++pass) {
         std::cout << "pass: " << pass << std::endl;
@@ -104,14 +93,10 @@ void radix_sort(entry_repr *repr_array, const unsigned int entry_array_size) {
             pass, gpu_entry_array, gpu_from, repr_array_size,
             gpu_bucket_indexes);
         // TODO: use async memory op
-        cudaMemcpy(bucket_indexes, gpu_bucket_indexes,
-                   repr_array_size * sizeof(unsigned int),
-                   cudaMemcpyDeviceToHost);
-
-        // FIXME: DEBUG:
-        /*for(unsigned int i=0; i!=repr_array_size; ++i) {
-            std::cout << bucket_indexes[i] << std::endl;
-        }*/
+        cudaMemcpyAsync(bucket_indexes, gpu_bucket_indexes,
+                        repr_array_size * sizeof(unsigned int),
+                        cudaMemcpyDeviceToHost, stream_bkt_idx);
+        cudaStreamSynchronize(stream_bkt_idx);
 
         // create data histogram
         for (unsigned int repr_idx = 0; repr_idx != repr_array_size;
@@ -120,9 +105,11 @@ void radix_sort(entry_repr *repr_array, const unsigned int entry_array_size) {
             bucket_key_label[repr_idx] = frequency[bucket_idx];
             frequency[bucket_idx] += 1;
         }
-        cudaMemcpy(gpu_bucket_key_label, bucket_key_label,
-                   repr_array_size * sizeof(unsigned int),
-                   cudaMemcpyHostToDevice);
+        cudaMemcpyAsync(gpu_bucket_key_label, bucket_key_label,
+                        repr_array_size * sizeof(unsigned int),
+                        cudaMemcpyHostToDevice, stream_key_lbl);
+        cudaStreamSynchronize(stream_key_lbl);
+
         // Init bucket HEADs (bucket HEAD pointers)
         unsigned int next = 0;
         for (unsigned int bucket_idx = 0; bucket_idx != sort::RADIX_SIZE;
@@ -130,20 +117,21 @@ void radix_sort(entry_repr *repr_array, const unsigned int entry_array_size) {
             bucket_HEADs[bucket_idx] = next;
             next += frequency[bucket_idx];
         }
-        cudaMemcpy(gpu_bucket_HEADs, bucket_HEADs,
-                   sort::RADIX_SIZE * sizeof(unsigned int),
-                   cudaMemcpyHostToDevice);
-        cudaDeviceSetLimit(cudaLimitPrintfFifoSize, 102400);
+        cudaMemcpyAsync(gpu_bucket_HEADs, bucket_HEADs,
+                        sort::RADIX_SIZE * sizeof(unsigned int),
+                        cudaMemcpyHostToDevice, stream_bkt_HEAD);
+        cudaStreamSynchronize(stream_bkt_HEAD);
+
         // actually move data to buckets
         move_to_buckets<<<blocksPerGrid, threadsPerBlock>>>(
             gpu_from, gpu_to, repr_array_size, gpu_bucket_HEADs,
             gpu_bucket_key_label, gpu_bucket_indexes);
 
         // FIXME:
-        entry_repr *debugg = new entry_repr[repr_array_size];
+        /*entry_repr *debugg = new entry_repr[repr_array_size];
         cudaMemcpy(debugg, gpu_to, repr_array_size * sizeof(unsigned int),
                    cudaMemcpyDeviceToHost);
-        /*for (unsigned int i = 0; i != repr_array_size; ++i) {
+        for (unsigned int i = 0; i != repr_array_size; ++i) {
           std::cout << debugg[i] << std::endl;
         }*/
 
@@ -152,34 +140,32 @@ void radix_sort(entry_repr *repr_array, const unsigned int entry_array_size) {
         gpu_from = gpu_to;
         gpu_to = gpu_ptr_swap_tmp;
     }
-
-    // return the correct array if ${RADIX_LEVELS} is odd
-    cudaMemcpy(repr_array, gpu_repr_array, repr_array_size * sizeof(entry_repr),
-               cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
+    // the correct result is in "gpu_repr_array"
 
     // Cleanup
     cudaFree(gpu_bucket_indexes);
     cudaFree(gpu_bucket_key_label);
     cudaFree(gpu_bucket_HEADs);
 
-    cudaFree(gpu_entry_array);
-    cudaFree(gpu_to);
-    cudaFree(gpu_from);
-
     cudaFreeHost(bucket_indexes);
     cudaFreeHost(bucket_key_label);
     cudaFreeHost(bucket_HEADs);
     cudaFreeHost(frequency);
+
+    cudaStreamDestroy(stream_bkt_idx);
+    cudaStreamDestroy(stream_bkt_HEAD);
+    cudaStreamDestroy(stream_key_lbl);
 }
 
-void encode(entry *entry_array, entry_repr *repr_array,
-            unsigned int repr_array_size, char (*result_array)[32]) {
+void encode(entry *gpu_entry_array, entry_repr *gpu_repr_array,
+            unsigned int repr_array_size, char (*gpu_result_array)[32]) {
     constexpr const int threadsPerBlock = 1024;
     const int blocksPerGrid =
         (repr_array_size + threadsPerBlock - 1) / threadsPerBlock;
 
     expand_and_encode<<<blocksPerGrid, threadsPerBlock>>>(
-        entry_array, repr_array, repr_array_size, result_array);
+        gpu_entry_array, gpu_repr_array, repr_array_size, gpu_result_array);
 }
 
 }  // namespace sort

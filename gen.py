@@ -24,7 +24,7 @@ try:
     # Touch file
     f = open(filename, mode="x")
 except FileExistsError as e:
-    print(f"-----\nFile: {filename} already exists.\n-----", file=sys.stderr)
+    print("-----\nFile: " + filename + " already exists.\n-----", file=sys.stderr)
     e
     sys.exit()
 

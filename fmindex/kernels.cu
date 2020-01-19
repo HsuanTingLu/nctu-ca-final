@@ -73,29 +73,30 @@ __global__ void move_to_buckets(entry_repr *from, entry_repr *to,
         from[repr_idx];
 }
 
-__global__ void expand_and_encode(entry *entry_array, entry_repr *repr_array,
+__global__ void expand_and_encode(entry *gpu_entry_array,
+                                  entry_repr *gpu_repr_array,
                                   unsigned int array_size,
-                                  char (*result_array)[32]) {
+                                  char (*gpu_result_array)[32]) {
     const unsigned int repr_idx =
         (static_cast<unsigned int>(blockIdx.x) << 10) +
         static_cast<unsigned int>(threadIdx.x);
     if (repr_idx >= array_size) {
         return;
     }
-    const entry_repr repr = repr_array[repr_idx];
-    const uint8_t *string = (entry_array[repr.str_idx]).data;
+    const entry_repr repr = gpu_repr_array[repr_idx];
+    const uint8_t *string = (gpu_entry_array[repr.str_idx]).data;
 
     // TODO: extract full entry with shift
     uint8_t extraction[64];
-    memcpy(extraction + repr.str_shift, string,
-           (64 - repr.str_shift) * sizeof(uint8_t));
-    memcpy(extraction, string + (64 - repr.str_shift),
+    memcpy(extraction + (64 - repr.str_shift), string,
            repr.str_shift * sizeof(uint8_t));
+    memcpy(extraction, string + repr.str_shift,
+           (64 - repr.str_shift) * sizeof(uint8_t));
 
     // TODO: squeeze them into char[32]
-    for (int i = 0; i < 32; ++i) {
-        result_array[repr_idx][i] =
-            static_cast<char>((extraction[2 * i] << 4) + extraction[2 * i + 1]);
+    for (unsigned int i = 0; i != 32; ++i) {
+        gpu_result_array[repr_idx][i] =
+            extraction[2 * i] << 4 | extraction[2 * i + 1];
     }
 }
 

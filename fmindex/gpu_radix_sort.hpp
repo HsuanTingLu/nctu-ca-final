@@ -25,12 +25,11 @@ constexpr const unsigned int PARTITION_SIZE = 5;
 
 void expand_rotation(const int array_size, entry_repr* repr_array);
 
-void radix_sort(entry_repr* repr_array, const unsigned int entry_array_size);
+void radix_sort(entry* gpu_entry_array, entry_repr* gpu_repr_array,
+                entry_repr* gpu_alt_array, const unsigned int entry_array_size);
 
-void encode(entry* entry_array,
-            entry_repr* repr_array,
-            unsigned int repr_array_size,
-            char (*result_array)[32]);
+void encode(entry* gpu_entry_array, entry_repr* gpu_repr_array,
+            unsigned int repr_array_size, char (*gpu_result_array)[32]);
 
 }  // namespace sort
 

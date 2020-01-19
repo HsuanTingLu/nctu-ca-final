@@ -9,7 +9,7 @@
 
 // Check correctness of values
 int checker(int read_count, char **fourbit_sorted_suffixes_original,
-            char **fourbit_sorted_suffixes_student) {
+            char (*fourbit_sorted_suffixes_student)[32]) {
     int correct = 1;
     for (int i = 0; i < read_count * 64; i++) {
         for (int j = 0; j < 64 / 2; j++) {
