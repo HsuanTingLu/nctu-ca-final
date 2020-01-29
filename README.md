@@ -2,4 +2,4 @@
 
 NCTU Computer Architecture Final Project
 
-parallel FM-index generation with CUDA support
+parallel FM-index generation for DNA reads with CUDA support
